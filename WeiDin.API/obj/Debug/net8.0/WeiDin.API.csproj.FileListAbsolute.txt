@@ -1,0 +1,8 @@
+C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.API\obj\Debug\net8.0\WeiDin.API.csproj.AssemblyReference.cache
+C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.API\obj\Debug\net8.0\rpswa.dswa.cache.json
+C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.API\obj\Debug\net8.0\WeiDin.API.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.API\obj\Debug\net8.0\WeiDin.API.AssemblyInfoInputs.cache
+C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.API\obj\Debug\net8.0\WeiDin.API.AssemblyInfo.cs
+C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.API\obj\Debug\net8.0\WeiDin.API.csproj.CoreCompileInputs.cache
+C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.API\obj\Debug\net8.0\WeiDin.API.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.API\obj\Debug\net8.0\WeiDin.API.MvcApplicationPartsAssemblyInfo.cache
