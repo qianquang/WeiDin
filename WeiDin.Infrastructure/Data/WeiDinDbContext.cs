@@ -144,7 +144,7 @@ public class WeiDinDbContext : DbContext
             entity.HasOne(e => e.BlockedUser)
                 .WithMany(e => e.BlacklistedUsers)
                 .HasForeignKey(e => e.BlockedUserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

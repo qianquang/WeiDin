@@ -167,3 +167,4 @@ C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.API\obj\Debug\net8.0\refint
 C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.API\obj\Debug\net8.0\WeiDin.API.pdb
 C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.API\obj\Debug\net8.0\WeiDin.API.genruntimeconfig.cache
 C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.API\obj\Debug\net8.0\ref\WeiDin.API.dll
+C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.API\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt

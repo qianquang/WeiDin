@@ -1,7 +1,28 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\",
-  "Documents": [],
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.api\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|solutionrelative:weidin.api\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.api\\weidin.api.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}",
+      "RelativeMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|solutionrelative:weidin.api\\weidin.api.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|solutionrelative:weidin.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.api\\databasesetup.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
+      "RelativeMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|solutionrelative:weidin.api\\databasesetup.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.api\\weidin.api.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|",
+      "RelativeMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|solutionrelative:weidin.api\\weidin.api.csproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
+    }
+  ],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -9,7 +30,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": -1,
+          "SelectedChildIndex": 7,
           "Children": [
             {
               "$type": "Bookmark",
@@ -38,6 +59,70 @@
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "launchSettings.json",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\Properties\\launchSettings.json",
+              "RelativeDocumentMoniker": "WeiDin.API\\Properties\\launchSettings.json",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\Properties\\launchSettings.json",
+              "RelativeToolTip": "WeiDin.API\\Properties\\launchSettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAA0AAAAfAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-09-25T06:35:21.471Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "WeiDin.API",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\WeiDin.API.csproj",
+              "RelativeDocumentMoniker": "WeiDin.API\\WeiDin.API.csproj",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\WeiDin.API.csproj",
+              "RelativeToolTip": "WeiDin.API\\WeiDin.API.csproj",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-09-25T06:32:02.404Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "WeiDin.API.http",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\WeiDin.API.http",
+              "RelativeDocumentMoniker": "WeiDin.API\\WeiDin.API.http",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\WeiDin.API.http",
+              "RelativeToolTip": "WeiDin.API\\WeiDin.API.http",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAArAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003502|",
+              "WhenOpened": "2025-09-25T06:31:06.794Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "DatabaseSetup.md",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\DatabaseSetup.md",
+              "RelativeDocumentMoniker": "WeiDin.API\\DatabaseSetup.md",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\DatabaseSetup.md",
+              "RelativeToolTip": "WeiDin.API\\DatabaseSetup.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2025-09-25T06:30:13.811Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\appsettings.json",
+              "RelativeDocumentMoniker": "WeiDin.API\\appsettings.json",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\appsettings.json",
+              "RelativeToolTip": "WeiDin.API\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAA/AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-09-25T06:30:09.717Z",
+              "EditorCaption": ""
             }
           ]
         },

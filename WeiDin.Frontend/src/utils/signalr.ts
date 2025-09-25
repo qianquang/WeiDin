@@ -20,7 +20,8 @@ export function useSignalR() {
       const token = authStore.token
 
       if (!token) {
-        throw new Error('用户未登录')
+        console.warn('用户未登录，跳过SignalR连接')
+        return
       }
 
       // 创建连接

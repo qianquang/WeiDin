@@ -43,7 +43,7 @@
             </el-tag>
           </el-form-item>
           <el-form-item label="注册时间">
-            <span>{{ formatDate(user?.createdAt) }}</span>
+            <span>{{ formatDate(user?.createdAt || '') }}</span>
           </el-form-item>
         </el-form>
         

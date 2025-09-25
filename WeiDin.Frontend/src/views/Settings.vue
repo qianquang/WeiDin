@@ -12,7 +12,7 @@
               <el-button @click="showChangePasswordDialog = true">修改密码</el-button>
             </el-form-item>
             <el-form-item label="在线状态">
-              <el-switch v-model="accountSettings.isOnline" @change="handleOnlineStatusChange" />
+              <el-switch v-model="accountSettings.isOnline" @change="(val: boolean) => handleOnlineStatusChange(val)" />
               <span class="setting-desc">{{ accountSettings.isOnline ? '显示为在线' : '显示为离线' }}</span>
             </el-form-item>
           </el-form>

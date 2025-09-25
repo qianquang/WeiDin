@@ -116,7 +116,9 @@ WeiDin/
 
 5. **访问API文档**
    
-   打开浏览器访问：`https://localhost:7000/swagger`
+   打开浏览器访问：
+   - **HTTPS API**: `https://localhost:7000/swagger`
+   - **HTTP API**: `http://localhost:5000`
 
 ## API 接口
 

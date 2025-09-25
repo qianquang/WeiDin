@@ -18,7 +18,11 @@ onMounted(async () => {
   
   // 如果用户已登录，初始化聊天连接
   if (authStore.isLoggedIn) {
-    await chatStore.initConnection()
+    try {
+      await chatStore.initConnection()
+    } catch (error) {
+      console.warn('聊天连接初始化失败，但不影响页面显示:', error)
+    }
   }
 })
 </script>

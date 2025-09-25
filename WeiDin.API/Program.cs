@@ -28,7 +28,8 @@ builder.Services.AddControllers();
 
 // 配置数据库
 builder.Services.AddDbContext<WeiDinDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), 
+        b => b.MigrationsAssembly("WeiDin.API")));
 
 // 配置Redis
 builder.Services.AddStackExchangeRedisCache(options =>

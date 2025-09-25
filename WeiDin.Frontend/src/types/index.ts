@@ -27,6 +27,11 @@ export interface UpdateUserDto {
   bio?: string
 }
 
+export interface ChangePasswordDto {
+  currentPassword: string
+  newPassword: string
+}
+
 export interface LoginDto {
   username: string
   password: string
@@ -90,6 +95,10 @@ export interface CreateMessageAttachmentDto {
   thumbnailPath?: string
 }
 
+export interface UpdateMessageStatusDto {
+  status: 'Sent' | 'Delivered' | 'Read'
+}
+
 // 群组相关类型
 export interface Group {
   id: string
@@ -140,6 +149,11 @@ export interface AddGroupMemberDto {
   nickname?: string
 }
 
+export interface UpdateGroupMemberDto {
+  nickname?: string
+  role?: 'Admin' | 'Member'
+}
+
 // 好友相关类型
 export interface Friendship {
   id: string
@@ -157,6 +171,11 @@ export interface Friendship {
 
 export interface CreateFriendshipDto {
   friendId: string
+  groupName?: string
+  remark?: string
+}
+
+export interface UpdateFriendshipDto {
   groupName?: string
   remark?: string
 }

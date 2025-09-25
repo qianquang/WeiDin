@@ -54,7 +54,7 @@
                 <div class="last-message">{{ session.lastMessage?.content || '暂无消息' }}</div>
               </div>
               <div class="chat-meta">
-                <div class="time">{{ formatTime(session.lastMessage?.createdAt) }}</div>
+                <div class="time">{{ formatTime(session.lastMessage?.createdAt || '') }}</div>
                 <el-badge v-if="session.unreadCount > 0" :value="session.unreadCount" class="unread-badge" />
               </div>
             </div>
@@ -208,7 +208,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {

@@ -43,10 +43,12 @@ export const useChatStore = defineStore('chat', () => {
   const initConnection = async () => {
     try {
       await startConnection()
-      isConnected.value = true
-      setupSignalRHandlers()
+      if (connection.value) {
+        isConnected.value = true
+        setupSignalRHandlers()
+      }
     } catch (error) {
-      console.error('SignalR连接失败:', error)
+      console.warn('SignalR连接失败，但不影响页面显示:', error)
     }
   }
 
