@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # SQL Server 数据库
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: weidin-sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - weidin-network
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: weidin-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - weidin-network
+
+  # 微钉API服务
+  weidin-api:
+    build:
+      context: .
+      dockerfile: WeiDin.API/Dockerfile
+    container_name: weidin-api
+    ports:
+      - "5000:80"
+      - "5001:443"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=WeiDinDb;User Id=sa;Password=YourStrong@Passw0rd;MultipleActiveResultSets=true;TrustServerCertificate=true
+      - ConnectionStrings__Redis=redis:6379
+    depends_on:
+      - sqlserver
+      - redis
+    networks:
+      - weidin-network
+
+volumes:
+  sqlserver_data:
+  redis_data:
+
+networks:
+  weidin-network:
+    driver: bridge

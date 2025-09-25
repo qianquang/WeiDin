@@ -20,3 +20,6 @@ public interface IGroupService
     Task<bool> IsOwnerAsync(Guid groupId, Guid userId);
     Task<bool> IsAdminAsync(Guid groupId, Guid userId);
 }
+
+
+

@@ -46,3 +46,5 @@ public class User
     public virtual ICollection<Blacklist> BlacklistedBy { get; set; } = new List<Blacklist>();
     public virtual ICollection<Blacklist> BlacklistedUsers { get; set; } = new List<Blacklist>();
 }
+
+

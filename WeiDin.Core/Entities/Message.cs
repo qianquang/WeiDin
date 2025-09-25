@@ -35,3 +35,5 @@ public class Message
     public virtual ICollection<MessageStatus> MessageStatuses { get; set; } = new List<MessageStatus>();
     public virtual ICollection<MessageAttachment> Attachments { get; set; } = new List<MessageAttachment>();
 }
+
+

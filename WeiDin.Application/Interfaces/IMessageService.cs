@@ -15,3 +15,6 @@ public interface IMessageService
     Task<bool> MarkAsReadAsync(Guid messageId, Guid userId);
     Task<bool> MarkAsDeliveredAsync(Guid messageId, Guid userId);
 }
+
+
+

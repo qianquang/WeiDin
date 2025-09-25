@@ -184,24 +184,24 @@ public class FilesController : ControllerBase
     }
 
     [HttpDelete("{fileName}")]
-    public async Task<ActionResult> DeleteFile(string fileName)
+    public Task<ActionResult> DeleteFile(string fileName)
     {
         try
         {
             var filePath = Path.Combine(_environment.WebRootPath, "uploads", fileName);
             
             if (!System.IO.File.Exists(filePath))
-                return NotFound("文件不存在");
+                return Task.FromResult<ActionResult>(NotFound("文件不存在"));
 
             System.IO.File.Delete(filePath);
             _logger.LogInformation("文件删除成功: {FileName}", fileName);
 
-            return NoContent();
+            return Task.FromResult<ActionResult>(NoContent());
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "删除文件时发生错误，文件名: {FileName}", fileName);
-            return StatusCode(500, "删除文件失败");
+            return Task.FromResult<ActionResult>(StatusCode(500, "删除文件失败"));
         }
     }
 
@@ -235,3 +235,4 @@ public class FileUploadResult
     public DateTime UploadedAt { get; set; }
     public string? Error { get; set; }
 }
+

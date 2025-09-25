@@ -10,7 +10,7 @@
         "dependencies": {
           "Microsoft.EntityFrameworkCore.SqlServer": "8.0.8",
           "Microsoft.EntityFrameworkCore.Tools": "8.0.8",
-          "StackExchange.Redis": "2.7.20",
+          "StackExchange.Redis": "2.7.27",
           "WeiDin.Core": "1.0.0"
         },
         "runtime": {
@@ -671,7 +671,7 @@
           }
         }
       },
-      "StackExchange.Redis/2.7.20": {
+      "StackExchange.Redis/2.7.27": {
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "8.0.0",
           "Pipelines.Sockets.Unofficial": "2.2.8"
@@ -679,7 +679,7 @@
         "runtime": {
           "lib/net6.0/StackExchange.Redis.dll": {
             "assemblyVersion": "2.0.0.0",
-            "fileVersion": "2.7.20.59961"
+            "fileVersion": "2.7.27.49176"
           }
         }
       },
@@ -1266,12 +1266,12 @@
       "path": "pipelines.sockets.unofficial/2.2.8",
       "hashPath": "pipelines.sockets.unofficial.2.2.8.nupkg.sha512"
     },
-    "StackExchange.Redis/2.7.20": {
+    "StackExchange.Redis/2.7.27": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-4ogjXwVp/7Gi/dNjGn1SWVxjrS0J0izVg8LeMVWSF3/zS3GH4lwtEMehQ9VEatQAqRbZ0i+OU+Z2obLUTYEoYg==",
-      "path": "stackexchange.redis/2.7.20",
-      "hashPath": "stackexchange.redis.2.7.20.nupkg.sha512"
+      "sha512": "sha512-Uqc2OQHglqj9/FfGQ6RkKFkZfHySfZlfmbCl+hc+u2I/IqunfelQ7QJi7ZhvAJxUtu80pildVX6NPLdDaUffOw==",
+      "path": "stackexchange.redis/2.7.27",
+      "hashPath": "stackexchange.redis.2.7.27.nupkg.sha512"
     },
     "System.CodeDom/4.4.0": {
       "type": "package",

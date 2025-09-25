@@ -59,3 +59,6 @@ public class UpdateGroupMemberDto
     public string? Nickname { get; set; }
     public string? Role { get; set; }
 }
+
+
+

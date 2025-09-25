@@ -15,3 +15,6 @@ public interface IFriendshipService
     Task<IEnumerable<BlacklistDto>> GetBlacklistAsync(Guid userId);
     Task<bool> IsBlacklistedAsync(Guid userId, Guid blockedUserId);
 }
+
+
+

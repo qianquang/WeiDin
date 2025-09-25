@@ -21,3 +21,6 @@ public class Blacklist
     public virtual User User { get; set; } = null!;
     public virtual User BlockedUser { get; set; } = null!;
 }
+
+
+

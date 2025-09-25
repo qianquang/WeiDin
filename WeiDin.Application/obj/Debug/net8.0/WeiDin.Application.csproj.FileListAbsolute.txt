@@ -8,6 +8,7 @@ C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Application\obj\Debug\net8.
 C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Application\obj\Debug\net8.0\WeiDin.Application.AssemblyInfoInputs.cache
 C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Application\obj\Debug\net8.0\WeiDin.Application.AssemblyInfo.cs
 C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Application\obj\Debug\net8.0\WeiDin.Application.csproj.CoreCompileInputs.cache
+C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Application\obj\Debug\net8.0\WeiDin.Application.sourcelink.json
 C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Application\obj\Debug\net8.0\WeiDin.A.B41CEB3E.Up2Date
 C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Application\obj\Debug\net8.0\WeiDin.Application.dll
 C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Application\obj\Debug\net8.0\refint\WeiDin.Application.dll

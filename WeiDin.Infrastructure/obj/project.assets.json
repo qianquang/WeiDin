@@ -906,7 +906,7 @@
           }
         }
       },
-      "StackExchange.Redis/2.7.20": {
+      "StackExchange.Redis/2.7.27": {
         "type": "package",
         "dependencies": {
           "Microsoft.Extensions.Logging.Abstractions": "6.0.0",
@@ -3007,10 +3007,10 @@
         "pipelines.sockets.unofficial.nuspec"
       ]
     },
-    "StackExchange.Redis/2.7.20": {
-      "sha512": "4ogjXwVp/7Gi/dNjGn1SWVxjrS0J0izVg8LeMVWSF3/zS3GH4lwtEMehQ9VEatQAqRbZ0i+OU+Z2obLUTYEoYg==",
+    "StackExchange.Redis/2.7.27": {
+      "sha512": "Uqc2OQHglqj9/FfGQ6RkKFkZfHySfZlfmbCl+hc+u2I/IqunfelQ7QJi7ZhvAJxUtu80pildVX6NPLdDaUffOw==",
       "type": "package",
-      "path": "stackexchange.redis/2.7.20",
+      "path": "stackexchange.redis/2.7.27",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -3024,7 +3024,7 @@
         "lib/netcoreapp3.1/StackExchange.Redis.xml",
         "lib/netstandard2.0/StackExchange.Redis.dll",
         "lib/netstandard2.0/StackExchange.Redis.xml",
-        "stackexchange.redis.2.7.20.nupkg.sha512",
+        "stackexchange.redis.2.7.27.nupkg.sha512",
         "stackexchange.redis.nuspec"
       ]
     },
@@ -4301,7 +4301,7 @@
     "net8.0": [
       "Microsoft.EntityFrameworkCore.SqlServer >= 8.0.8",
       "Microsoft.EntityFrameworkCore.Tools >= 8.0.8",
-      "StackExchange.Redis >= 2.7.20",
+      "StackExchange.Redis >= 2.7.27",
       "WeiDin.Core >= 1.0.0"
     ]
   },
@@ -4370,7 +4370,7 @@
           },
           "StackExchange.Redis": {
             "target": "Package",
-            "version": "[2.7.20, )"
+            "version": "[2.7.27, )"
           }
         },
         "imports": [

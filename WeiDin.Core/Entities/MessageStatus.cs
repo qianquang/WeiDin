@@ -22,3 +22,6 @@ public class MessageStatus
     public virtual Message Message { get; set; } = null!;
     public virtual User User { get; set; } = null!;
 }
+
+
+

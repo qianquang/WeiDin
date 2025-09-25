@@ -6,6 +6,7 @@ C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Core\obj\Debug\net8.0\WeiDi
 C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Core\obj\Debug\net8.0\WeiDin.Core.AssemblyInfoInputs.cache
 C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Core\obj\Debug\net8.0\WeiDin.Core.AssemblyInfo.cs
 C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Core\obj\Debug\net8.0\WeiDin.Core.csproj.CoreCompileInputs.cache
+C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Core\obj\Debug\net8.0\WeiDin.Core.sourcelink.json
 C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Core\obj\Debug\net8.0\WeiDin.Core.dll
 C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Core\obj\Debug\net8.0\refint\WeiDin.Core.dll
 C:\Users\1\Desktop\工作code文件夹\WeiDin\WeiDin.Core\obj\Debug\net8.0\WeiDin.Core.pdb

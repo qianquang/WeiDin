@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WeiDin.Core")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+26e26620f8195696c0d6ccd86524cad437348337")]
 [assembly: System.Reflection.AssemblyProductAttribute("WeiDin.Core")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WeiDin.Core")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

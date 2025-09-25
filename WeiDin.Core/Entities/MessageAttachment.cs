@@ -31,3 +31,6 @@ public class MessageAttachment
     // 导航属性
     public virtual Message Message { get; set; } = null!;
 }
+
+
+

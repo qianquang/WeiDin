@@ -289,9 +289,11 @@ public class GroupService : IGroupService
             (gm.Role == "Owner" || gm.Role == "Admin") && gm.IsActive);
     }
 
-    private async Task LoadGroupRelatedData(Group group)
+    private Task LoadGroupRelatedData(Group group)
     {
         // 这里可以添加预加载相关数据的逻辑
         // 由于我们使用的是简单的Repository模式，这里暂时不实现
+        return Task.CompletedTask;
     }
 }
+

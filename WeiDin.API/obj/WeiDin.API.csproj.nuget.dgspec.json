@@ -82,6 +82,10 @@
               "target": "Package",
               "version": "[8.0.8, )"
             },
+            "Microsoft.Extensions.Caching.StackExchangeRedis": {
+              "target": "Package",
+              "version": "[8.0.8, )"
+            },
             "Serilog.AspNetCore": {
               "target": "Package",
               "version": "[8.0.1, )"
@@ -96,7 +100,7 @@
             },
             "StackExchange.Redis": {
               "target": "Package",
-              "version": "[2.7.20, )"
+              "version": "[2.7.27, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
@@ -355,7 +359,7 @@
             },
             "StackExchange.Redis": {
               "target": "Package",
-              "version": "[2.7.20, )"
+              "version": "[2.7.27, )"
             }
           },
           "imports": [

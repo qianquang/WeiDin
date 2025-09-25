@@ -206,10 +206,12 @@ public class MessageService : IMessageService
         return await UpdateMessageStatusAsync(messageId, userId, new UpdateMessageStatusDto { Status = "Delivered" });
     }
 
-    private async Task LoadMessageRelatedData(Message message)
+    private Task LoadMessageRelatedData(Message message)
     {
         // 这里可以添加预加载相关数据的逻辑
         // 由于我们使用的是简单的Repository模式，这里暂时不实现
         // 在实际项目中，可以使用Include方法预加载相关数据
+        return Task.CompletedTask;
     }
 }
+
