@@ -1,10 +1,14 @@
 using System.ComponentModel.DataAnnotations;
+using Volo.Abp.Domain.Entities;
 
 namespace WeiDin.Core.Entities;
 
-public class Blacklist
+public class Blacklist : Entity<Guid>
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public Blacklist()
+    {
+        Id = Guid.NewGuid();
+    }
     
     [Required]
     public Guid UserId { get; set; } // 拉黑者

@@ -2,24 +2,28 @@ using AutoMapper;
 using WeiDin.Application.DTOs;
 using WeiDin.Application.Interfaces;
 using WeiDin.Core.Entities;
-using WeiDin.Core.Interfaces;
+using Volo.Abp.Domain.Repositories;
 
 namespace WeiDin.Application.Services;
 
 public class GroupService : IGroupService
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IRepository<Group, Guid> _groupRepository;
+    private readonly IRepository<GroupMember, Guid> _groupMemberRepository;
     private readonly IMapper _mapper;
 
-    public GroupService(IUnitOfWork unitOfWork, IMapper mapper)
+    public GroupService(IRepository<Group, Guid> groupRepository,
+                        IRepository<GroupMember, Guid> groupMemberRepository,
+                        IMapper mapper)
     {
-        _unitOfWork = unitOfWork;
+        _groupRepository = groupRepository;
+        _groupMemberRepository = groupMemberRepository;
         _mapper = mapper;
     }
 
     public async Task<GroupDto?> GetByIdAsync(Guid id)
     {
-        var group = await _unitOfWork.Groups.GetByIdAsync(id);
+        var group = await _groupRepository.FindAsync(id);
         if (group == null)
             return null;
 
@@ -30,11 +34,11 @@ public class GroupService : IGroupService
 
     public async Task<IEnumerable<GroupDto>> GetByUserIdAsync(Guid userId)
     {
-        var groupMembers = await _unitOfWork.GroupMembers.FindAsync(gm => 
+        var groupMembers = await _groupMemberRepository.GetListAsync(gm => 
             gm.UserId == userId && gm.IsActive);
         
         var groupIds = groupMembers.Select(gm => gm.GroupId).ToList();
-        var groups = await _unitOfWork.Groups.FindAsync(g => groupIds.Contains(g.Id));
+        var groups = await _groupRepository.GetListAsync(g => groupIds.Contains(g.Id));
 
         foreach (var group in groups)
         {
@@ -46,7 +50,7 @@ public class GroupService : IGroupService
 
     public async Task<IEnumerable<GroupDto>> GetAllAsync(int page = 1, int pageSize = 20)
     {
-        var groups = await _unitOfWork.Groups.FindAsync(g => g.IsActive);
+        var groups = await _groupRepository.GetListAsync(g => g.IsActive);
         
         var pagedGroups = groups
             .OrderByDescending(g => g.CreatedAt)
@@ -74,8 +78,7 @@ public class GroupService : IGroupService
             MaxMembers = createGroupDto.MaxMembers
         };
 
-        await _unitOfWork.Groups.AddAsync(group);
-        await _unitOfWork.SaveChangesAsync();
+        await _groupRepository.InsertAsync(group, autoSave: true);
 
         // 添加群主为成员
         var ownerMember = new GroupMember
@@ -84,8 +87,7 @@ public class GroupService : IGroupService
             UserId = ownerId,
             Role = "Owner"
         };
-        await _unitOfWork.GroupMembers.AddAsync(ownerMember);
-        await _unitOfWork.SaveChangesAsync();
+        await _groupMemberRepository.InsertAsync(ownerMember, autoSave: true);
 
         await LoadGroupRelatedData(group);
         return _mapper.Map<GroupDto>(group);
@@ -93,7 +95,7 @@ public class GroupService : IGroupService
 
     public async Task<GroupDto> UpdateAsync(Guid id, UpdateGroupDto updateDto, Guid userId)
     {
-        var group = await _unitOfWork.Groups.GetByIdAsync(id);
+        var group = await _groupRepository.FindAsync(id);
         if (group == null)
             throw new InvalidOperationException("群组不存在");
 
@@ -113,8 +115,7 @@ public class GroupService : IGroupService
 
         group.UpdatedAt = DateTime.UtcNow;
 
-        await _unitOfWork.Groups.UpdateAsync(group);
-        await _unitOfWork.SaveChangesAsync();
+        await _groupRepository.UpdateAsync(group, autoSave: true);
 
         await LoadGroupRelatedData(group);
         return _mapper.Map<GroupDto>(group);
@@ -122,7 +123,7 @@ public class GroupService : IGroupService
 
     public async Task<bool> DeleteAsync(Guid id, Guid userId)
     {
-        var group = await _unitOfWork.Groups.GetByIdAsync(id);
+        var group = await _groupRepository.FindAsync(id);
         if (group == null)
             return false;
 
@@ -132,14 +133,13 @@ public class GroupService : IGroupService
         group.IsActive = false;
         group.UpdatedAt = DateTime.UtcNow;
 
-        await _unitOfWork.Groups.UpdateAsync(group);
-        await _unitOfWork.SaveChangesAsync();
+        await _groupRepository.UpdateAsync(group, autoSave: true);
         return true;
     }
 
     public async Task<bool> JoinGroupAsync(Guid groupId, Guid userId)
     {
-        var group = await _unitOfWork.Groups.GetByIdAsync(groupId);
+        var group = await _groupRepository.FindAsync(groupId);
         if (group == null || !group.IsActive)
             return false;
 
@@ -148,7 +148,7 @@ public class GroupService : IGroupService
             return false;
 
         // 检查群组是否已满
-        var currentMemberCount = await _unitOfWork.GroupMembers.CountAsync(gm => 
+        var currentMemberCount = await _groupMemberRepository.CountAsync(gm => 
             gm.GroupId == groupId && gm.IsActive);
         if (currentMemberCount >= group.MaxMembers)
             return false;
@@ -160,14 +160,13 @@ public class GroupService : IGroupService
             Role = "Member"
         };
 
-        await _unitOfWork.GroupMembers.AddAsync(member);
-        await _unitOfWork.SaveChangesAsync();
+        await _groupMemberRepository.InsertAsync(member, autoSave: true);
         return true;
     }
 
     public async Task<bool> LeaveGroupAsync(Guid groupId, Guid userId)
     {
-        var member = await _unitOfWork.GroupMembers.FirstOrDefaultAsync(gm => 
+        var member = await _groupMemberRepository.FirstOrDefaultAsync(gm => 
             gm.GroupId == groupId && gm.UserId == userId && gm.IsActive);
 
         if (member == null)
@@ -180,8 +179,7 @@ public class GroupService : IGroupService
         member.IsActive = false;
         member.LeftAt = DateTime.UtcNow;
 
-        await _unitOfWork.GroupMembers.UpdateAsync(member);
-        await _unitOfWork.SaveChangesAsync();
+        await _groupMemberRepository.UpdateAsync(member, autoSave: true);
         return true;
     }
 
@@ -190,12 +188,12 @@ public class GroupService : IGroupService
         if (!await IsAdminAsync(groupId, operatorId))
             return false;
 
-        var group = await _unitOfWork.Groups.GetByIdAsync(groupId);
+        var group = await _groupRepository.FindAsync(groupId);
         if (group == null || !group.IsActive)
             return false;
 
         // 检查群组是否已满
-        var currentMemberCount = await _unitOfWork.GroupMembers.CountAsync(gm => 
+        var currentMemberCount = await _groupMemberRepository.CountAsync(gm => 
             gm.GroupId == groupId && gm.IsActive);
         if (currentMemberCount >= group.MaxMembers)
             return false;
@@ -212,8 +210,7 @@ public class GroupService : IGroupService
             Nickname = addMemberDto.Nickname
         };
 
-        await _unitOfWork.GroupMembers.AddAsync(member);
-        await _unitOfWork.SaveChangesAsync();
+        await _groupMemberRepository.InsertAsync(member, autoSave: true);
         return true;
     }
 
@@ -222,7 +219,7 @@ public class GroupService : IGroupService
         if (!await IsAdminAsync(groupId, operatorId))
             return false;
 
-        var member = await _unitOfWork.GroupMembers.FirstOrDefaultAsync(gm => 
+        var member = await _groupMemberRepository.FirstOrDefaultAsync(gm => 
             gm.GroupId == groupId && gm.UserId == memberId && gm.IsActive);
 
         if (member == null)
@@ -235,8 +232,7 @@ public class GroupService : IGroupService
         member.IsActive = false;
         member.LeftAt = DateTime.UtcNow;
 
-        await _unitOfWork.GroupMembers.UpdateAsync(member);
-        await _unitOfWork.SaveChangesAsync();
+        await _groupMemberRepository.UpdateAsync(member, autoSave: true);
         return true;
     }
 
@@ -245,7 +241,7 @@ public class GroupService : IGroupService
         if (!await IsAdminAsync(groupId, operatorId))
             return false;
 
-        var member = await _unitOfWork.GroupMembers.FirstOrDefaultAsync(gm => 
+        var member = await _groupMemberRepository.FirstOrDefaultAsync(gm => 
             gm.GroupId == groupId && gm.UserId == memberId && gm.IsActive);
 
         if (member == null)
@@ -257,14 +253,13 @@ public class GroupService : IGroupService
         if (!string.IsNullOrEmpty(updateDto.Role) && updateDto.Role != "Owner")
             member.Role = updateDto.Role;
 
-        await _unitOfWork.GroupMembers.UpdateAsync(member);
-        await _unitOfWork.SaveChangesAsync();
+        await _groupMemberRepository.UpdateAsync(member, autoSave: true);
         return true;
     }
 
     public async Task<IEnumerable<GroupMemberDto>> GetMembersAsync(Guid groupId)
     {
-        var members = await _unitOfWork.GroupMembers.FindAsync(gm => 
+        var members = await _groupMemberRepository.GetListAsync(gm => 
             gm.GroupId == groupId && gm.IsActive);
 
         return _mapper.Map<IEnumerable<GroupMemberDto>>(members);
@@ -272,19 +267,19 @@ public class GroupService : IGroupService
 
     public async Task<bool> IsMemberAsync(Guid groupId, Guid userId)
     {
-        return await _unitOfWork.GroupMembers.ExistsAsync(gm => 
+        return await _groupMemberRepository.AnyAsync(gm => 
             gm.GroupId == groupId && gm.UserId == userId && gm.IsActive);
     }
 
     public async Task<bool> IsOwnerAsync(Guid groupId, Guid userId)
     {
-        return await _unitOfWork.GroupMembers.ExistsAsync(gm => 
+        return await _groupMemberRepository.AnyAsync(gm => 
             gm.GroupId == groupId && gm.UserId == userId && gm.Role == "Owner" && gm.IsActive);
     }
 
     public async Task<bool> IsAdminAsync(Guid groupId, Guid userId)
     {
-        return await _unitOfWork.GroupMembers.ExistsAsync(gm => 
+        return await _groupMemberRepository.AnyAsync(gm => 
             gm.GroupId == groupId && gm.UserId == userId && 
             (gm.Role == "Owner" || gm.Role == "Admin") && gm.IsActive);
     }

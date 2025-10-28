@@ -1,10 +1,14 @@
 using System.ComponentModel.DataAnnotations;
+using Volo.Abp.Domain.Entities;
 
 namespace WeiDin.Core.Entities;
 
-public class Friendship
+public class Friendship : Entity<Guid>
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public Friendship()
+    {
+        Id = Guid.NewGuid();
+    }
     
     [Required]
     public Guid UserId { get; set; }

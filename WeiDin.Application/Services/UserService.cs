@@ -2,7 +2,7 @@ using AutoMapper;
 using WeiDin.Application.DTOs;
 using WeiDin.Application.Interfaces;
 using WeiDin.Core.Entities;
-using WeiDin.Core.Interfaces;
+using Volo.Abp.Domain.Repositories;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -10,36 +10,36 @@ namespace WeiDin.Application.Services;
 
 public class UserService : IUserService
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IRepository<User, Guid> _userRepository;
     private readonly IMapper _mapper;
 
-    public UserService(IUnitOfWork unitOfWork, IMapper mapper)
+    public UserService(IRepository<User, Guid> userRepository, IMapper mapper)
     {
-        _unitOfWork = unitOfWork;
+        _userRepository = userRepository;
         _mapper = mapper;
     }
 
     public async Task<UserDto?> GetByIdAsync(Guid id)
     {
-        var user = await _unitOfWork.Users.GetByIdAsync(id);
+        var user = await _userRepository.FindAsync(id);
         return user != null ? _mapper.Map<UserDto>(user) : null;
     }
 
     public async Task<UserDto?> GetByUsernameAsync(string username)
     {
-        var user = await _unitOfWork.Users.FirstOrDefaultAsync(u => u.Username == username);
+        var user = await _userRepository.FirstOrDefaultAsync(u => u.Username == username);
         return user != null ? _mapper.Map<UserDto>(user) : null;
     }
 
     public async Task<UserDto?> GetByEmailAsync(string email)
     {
-        var user = await _unitOfWork.Users.FirstOrDefaultAsync(u => u.Email == email);
+        var user = await _userRepository.FirstOrDefaultAsync(u => u.Email == email);
         return user != null ? _mapper.Map<UserDto>(user) : null;
     }
 
     public async Task<IEnumerable<UserDto>> GetAllAsync()
     {
-        var users = await _unitOfWork.Users.GetAllAsync();
+        var users = await _userRepository.GetListAsync();
         return _mapper.Map<IEnumerable<UserDto>>(users);
     }
 
@@ -62,15 +62,14 @@ public class UserService : IUserService
             Bio = createUserDto.Bio
         };
 
-        await _unitOfWork.Users.AddAsync(user);
-        await _unitOfWork.SaveChangesAsync();
+        await _userRepository.InsertAsync(user, autoSave: true);
 
         return _mapper.Map<UserDto>(user);
     }
 
     public async Task<UserDto> UpdateAsync(Guid id, UpdateUserDto updateUserDto)
     {
-        var user = await _unitOfWork.Users.GetByIdAsync(id);
+        var user = await _userRepository.FindAsync(id);
         if (user == null)
             throw new InvalidOperationException("用户不存在");
 
@@ -79,26 +78,24 @@ public class UserService : IUserService
         user.Bio = updateUserDto.Bio ?? user.Bio;
         user.UpdatedAt = DateTime.UtcNow;
 
-        await _unitOfWork.Users.UpdateAsync(user);
-        await _unitOfWork.SaveChangesAsync();
+        await _userRepository.UpdateAsync(user, autoSave: true);
 
         return _mapper.Map<UserDto>(user);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
     {
-        var user = await _unitOfWork.Users.GetByIdAsync(id);
+        var user = await _userRepository.FindAsync(id);
         if (user == null)
             return false;
 
-        await _unitOfWork.Users.DeleteAsync(user);
-        await _unitOfWork.SaveChangesAsync();
+        await _userRepository.DeleteAsync(user);
         return true;
     }
 
     public async Task<bool> ChangePasswordAsync(Guid id, ChangePasswordDto changePasswordDto)
     {
-        var user = await _unitOfWork.Users.GetByIdAsync(id);
+        var user = await _userRepository.FindAsync(id);
         if (user == null)
             return false;
 
@@ -108,14 +105,13 @@ public class UserService : IUserService
         user.PasswordHash = HashPassword(changePasswordDto.NewPassword);
         user.UpdatedAt = DateTime.UtcNow;
 
-        await _unitOfWork.Users.UpdateAsync(user);
-        await _unitOfWork.SaveChangesAsync();
+        await _userRepository.UpdateAsync(user, autoSave: true);
         return true;
     }
 
     public async Task<bool> ValidatePasswordAsync(string username, string password)
     {
-        var user = await _unitOfWork.Users.FirstOrDefaultAsync(u => u.Username == username);
+        var user = await _userRepository.FirstOrDefaultAsync(u => u.Username == username);
         if (user == null)
             return false;
 
@@ -124,7 +120,7 @@ public class UserService : IUserService
 
     public async Task<bool> SetOnlineStatusAsync(Guid id, bool isOnline)
     {
-        var user = await _unitOfWork.Users.GetByIdAsync(id);
+        var user = await _userRepository.FindAsync(id);
         if (user == null)
             return false;
 
@@ -132,24 +128,23 @@ public class UserService : IUserService
         user.LastSeen = DateTime.UtcNow;
         user.UpdatedAt = DateTime.UtcNow;
 
-        await _unitOfWork.Users.UpdateAsync(user);
-        await _unitOfWork.SaveChangesAsync();
+        await _userRepository.UpdateAsync(user, autoSave: true);
         return true;
     }
 
     public async Task<bool> ExistsAsync(Guid id)
     {
-        return await _unitOfWork.Users.ExistsAsync(u => u.Id == id);
+        return await _userRepository.AnyAsync(u => u.Id == id);
     }
 
     public async Task<bool> ExistsByUsernameAsync(string username)
     {
-        return await _unitOfWork.Users.ExistsAsync(u => u.Username == username);
+        return await _userRepository.AnyAsync(u => u.Username == username);
     }
 
     public async Task<bool> ExistsByEmailAsync(string email)
     {
-        return await _unitOfWork.Users.ExistsAsync(u => u.Email == email);
+        return await _userRepository.AnyAsync(u => u.Email == email);
     }
 
     private static string HashPassword(string password)

@@ -10,6 +10,8 @@ using WeiDin.Application.Services;
 using WeiDin.Core.Interfaces;
 using WeiDin.Infrastructure.Data;
 using WeiDin.Infrastructure.Repositories;
+using Volo.Abp;
+using Volo.Abp.Autofac;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,12 +23,14 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.File("logs/weidin-.txt", rollingInterval: RollingInterval.Day)
     .CreateLogger();
 
-builder.Host.UseSerilog();
+builder.Host
+    .UseSerilog()
+    .UseAutofac();
 
 // Add services to the container.
 builder.Services.AddControllers();
 
-// 配置数据库
+// 配置数据库（保留原生配置；ABP 的 DbContext 选项在模块中设置）
 builder.Services.AddDbContext<WeiDinDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), 
         b => b.MigrationsAssembly("WeiDin.API")));
@@ -119,7 +123,12 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// ABP 应用
+builder.Services.AddApplication<WeiDin.API.WeiDinApiModule>();
+
 var app = builder.Build();
+
+app.InitializeApplication();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

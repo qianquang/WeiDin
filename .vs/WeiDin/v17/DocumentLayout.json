@@ -3,16 +3,72 @@
   "WorkspaceRootPath": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{0B13C1BF-96C0-4A77-BAAD-57323B5734B6}|WeiDin.Core\\WeiDin.Core.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.core\\entities\\blacklist.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0B13C1BF-96C0-4A77-BAAD-57323B5734B6}|WeiDin.Core\\WeiDin.Core.csproj|solutionrelative:weidin.core\\entities\\blacklist.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{0B13C1BF-96C0-4A77-BAAD-57323B5734B6}|WeiDin.Core\\WeiDin.Core.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.core\\entities\\friendship.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{0B13C1BF-96C0-4A77-BAAD-57323B5734B6}|WeiDin.Core\\WeiDin.Core.csproj|solutionrelative:weidin.core\\entities\\friendship.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.application\\services\\userservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|solutionrelative:weidin.application\\services\\userservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.application\\mappings\\mappingprofile.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|solutionrelative:weidin.application\\mappings\\mappingprofile.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.application\\services\\friendshipservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|solutionrelative:weidin.application\\services\\friendshipservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.application\\interfaces\\igroupservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|solutionrelative:weidin.application\\interfaces\\igroupservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.application\\interfaces\\ifriendshipservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|solutionrelative:weidin.application\\interfaces\\ifriendshipservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.application\\dtos\\userdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|solutionrelative:weidin.application\\dtos\\userdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.application\\dtos\\messagedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|solutionrelative:weidin.application\\dtos\\messagedto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.application\\dtos\\groupdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|solutionrelative:weidin.application\\dtos\\groupdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.application\\dtos\\friendshipdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{859003D3-7C92-4E10-8795-B0D566AB7580}|WeiDin.Application\\WeiDin.Application.csproj|solutionrelative:weidin.application\\dtos\\friendshipdto.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|solutionrelative:weidin.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.api\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|solutionrelative:weidin.api\\appsettings.development.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.api\\migrations\\20250925062910_initialcreate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|solutionrelative:weidin.api\\migrations\\20250925062910_initialcreate.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.api\\migrations\\weidindbcontextmodelsnapshot.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|solutionrelative:weidin.api\\migrations\\weidindbcontextmodelsnapshot.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.api\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|solutionrelative:weidin.api\\properties\\launchsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.api\\weidin.api.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}",
       "RelativeMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|solutionrelative:weidin.api\\weidin.api.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|solutionrelative:weidin.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{60597C3F-C445-4A6E-9A23-672430A2881D}|WeiDin.API\\WeiDin.API.csproj|c:\\users\\1\\desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\weidin\\weidin.api\\databasesetup.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
@@ -30,7 +86,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 7,
+          "SelectedChildIndex": 8,
           "Children": [
             {
               "$type": "Bookmark",
@@ -62,7 +118,189 @@
             },
             {
               "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Friendship.cs",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Core\\Entities\\Friendship.cs",
+              "RelativeDocumentMoniker": "WeiDin.Core\\Entities\\Friendship.cs",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Core\\Entities\\Friendship.cs",
+              "RelativeToolTip": "WeiDin.Core\\Entities\\Friendship.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-16T01:52:09.856Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 0,
+              "Title": "Blacklist.cs",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Core\\Entities\\Blacklist.cs",
+              "RelativeDocumentMoniker": "WeiDin.Core\\Entities\\Blacklist.cs",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Core\\Entities\\Blacklist.cs",
+              "RelativeToolTip": "WeiDin.Core\\Entities\\Blacklist.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-16T01:52:08.296Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "UserService.cs",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\Services\\UserService.cs",
+              "RelativeDocumentMoniker": "WeiDin.Application\\Services\\UserService.cs",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\Services\\UserService.cs",
+              "RelativeToolTip": "WeiDin.Application\\Services\\UserService.cs",
+              "ViewState": "AgIAAFoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-16T01:51:57.821Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "FriendshipService.cs",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\Services\\FriendshipService.cs",
+              "RelativeDocumentMoniker": "WeiDin.Application\\Services\\FriendshipService.cs",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\Services\\FriendshipService.cs",
+              "RelativeToolTip": "WeiDin.Application\\Services\\FriendshipService.cs",
+              "ViewState": "AgIAABUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-16T01:51:47.416Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "MappingProfile.cs",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\Mappings\\MappingProfile.cs",
+              "RelativeDocumentMoniker": "WeiDin.Application\\Mappings\\MappingProfile.cs",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\Mappings\\MappingProfile.cs",
+              "RelativeToolTip": "WeiDin.Application\\Mappings\\MappingProfile.cs",
+              "ViewState": "AgIAAFsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-16T01:51:41.186Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "IGroupService.cs",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\Interfaces\\IGroupService.cs",
+              "RelativeDocumentMoniker": "WeiDin.Application\\Interfaces\\IGroupService.cs",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\Interfaces\\IGroupService.cs",
+              "RelativeToolTip": "WeiDin.Application\\Interfaces\\IGroupService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-16T01:51:38.137Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "IFriendshipService.cs",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\Interfaces\\IFriendshipService.cs",
+              "RelativeDocumentMoniker": "WeiDin.Application\\Interfaces\\IFriendshipService.cs",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\Interfaces\\IFriendshipService.cs",
+              "RelativeToolTip": "WeiDin.Application\\Interfaces\\IFriendshipService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-16T01:51:37.113Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "UserDto.cs",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\DTOs\\UserDto.cs",
+              "RelativeDocumentMoniker": "WeiDin.Application\\DTOs\\UserDto.cs",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\DTOs\\UserDto.cs",
+              "RelativeToolTip": "WeiDin.Application\\DTOs\\UserDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-16T01:51:33.776Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "MessageDto.cs",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\DTOs\\MessageDto.cs",
+              "RelativeDocumentMoniker": "WeiDin.Application\\DTOs\\MessageDto.cs",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\DTOs\\MessageDto.cs",
+              "RelativeToolTip": "WeiDin.Application\\DTOs\\MessageDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-16T01:51:32.817Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "FriendshipDto.cs",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\DTOs\\FriendshipDto.cs",
+              "RelativeDocumentMoniker": "WeiDin.Application\\DTOs\\FriendshipDto.cs",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\DTOs\\FriendshipDto.cs",
+              "RelativeToolTip": "WeiDin.Application\\DTOs\\FriendshipDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-16T01:51:30.88Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "GroupDto.cs",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\DTOs\\GroupDto.cs",
+              "RelativeDocumentMoniker": "WeiDin.Application\\DTOs\\GroupDto.cs",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.Application\\DTOs\\GroupDto.cs",
+              "RelativeToolTip": "WeiDin.Application\\DTOs\\GroupDto.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-16T01:51:26.576Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "appsettings.Development.json",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\appsettings.Development.json",
+              "RelativeDocumentMoniker": "WeiDin.API\\appsettings.Development.json",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\appsettings.Development.json",
+              "RelativeToolTip": "WeiDin.API\\appsettings.Development.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-10-16T01:51:20.392Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "20250925062910_InitialCreate.cs",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\Migrations\\20250925062910_InitialCreate.cs",
+              "RelativeDocumentMoniker": "WeiDin.API\\Migrations\\20250925062910_InitialCreate.cs",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\Migrations\\20250925062910_InitialCreate.cs",
+              "RelativeToolTip": "WeiDin.API\\Migrations\\20250925062910_InitialCreate.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-16T01:51:12.106Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "WeiDinDbContextModelSnapshot.cs",
+              "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\Migrations\\WeiDinDbContextModelSnapshot.cs",
+              "RelativeDocumentMoniker": "WeiDin.API\\Migrations\\WeiDinDbContextModelSnapshot.cs",
+              "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\Migrations\\WeiDinDbContextModelSnapshot.cs",
+              "RelativeToolTip": "WeiDin.API\\Migrations\\WeiDinDbContextModelSnapshot.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-10-16T01:51:10.452Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
               "Title": "launchSettings.json",
               "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\Properties\\launchSettings.json",
               "RelativeDocumentMoniker": "WeiDin.API\\Properties\\launchSettings.json",
@@ -75,19 +313,18 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 18,
               "Title": "WeiDin.API",
               "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\WeiDin.API.csproj",
               "RelativeDocumentMoniker": "WeiDin.API\\WeiDin.API.csproj",
               "ToolTip": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\WeiDin.API.csproj",
               "RelativeToolTip": "WeiDin.API\\WeiDin.API.csproj",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
-              "WhenOpened": "2025-09-25T06:32:02.404Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-25T06:32:02.404Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 16,
               "Title": "WeiDin.API.http",
               "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\WeiDin.API.http",
               "RelativeDocumentMoniker": "WeiDin.API\\WeiDin.API.http",
@@ -95,12 +332,11 @@
               "RelativeToolTip": "WeiDin.API\\WeiDin.API.http",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAArAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003502|",
-              "WhenOpened": "2025-09-25T06:31:06.794Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-25T06:31:06.794Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 17,
               "Title": "DatabaseSetup.md",
               "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\DatabaseSetup.md",
               "RelativeDocumentMoniker": "WeiDin.API\\DatabaseSetup.md",
@@ -108,12 +344,11 @@
               "RelativeToolTip": "WeiDin.API\\DatabaseSetup.md",
               "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
-              "WhenOpened": "2025-09-25T06:30:13.811Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-09-25T06:30:13.811Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 11,
               "Title": "appsettings.json",
               "DocumentMoniker": "C:\\Users\\1\\Desktop\\\u5DE5\u4F5Ccode\u6587\u4EF6\u5939\\WeiDin\\WeiDin.API\\appsettings.json",
               "RelativeDocumentMoniker": "WeiDin.API\\appsettings.json",

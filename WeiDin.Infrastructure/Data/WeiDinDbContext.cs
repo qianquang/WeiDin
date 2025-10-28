@@ -1,9 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using Volo.Abp.EntityFrameworkCore;
 using WeiDin.Core.Entities;
 
 namespace WeiDin.Infrastructure.Data;
 
-public class WeiDinDbContext : DbContext
+public class WeiDinDbContext : AbpDbContext<WeiDinDbContext>
 {
     public WeiDinDbContext(DbContextOptions<WeiDinDbContext> options) : base(options)
     {

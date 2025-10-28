@@ -3,24 +3,31 @@ using Microsoft.EntityFrameworkCore;
 using WeiDin.Application.DTOs;
 using WeiDin.Application.Interfaces;
 using WeiDin.Core.Entities;
-using WeiDin.Core.Interfaces;
+using Volo.Abp.Domain.Repositories;
 
 namespace WeiDin.Application.Services;
 
 public class MessageService : IMessageService
 {
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IRepository<Message, Guid> _messageRepository;
+    private readonly IRepository<MessageStatus, Guid> _messageStatusRepository;
+    private readonly IRepository<MessageAttachment, Guid> _messageAttachmentRepository;
     private readonly IMapper _mapper;
 
-    public MessageService(IUnitOfWork unitOfWork, IMapper mapper)
+    public MessageService(IRepository<Message, Guid> messageRepository,
+                          IRepository<MessageStatus, Guid> messageStatusRepository,
+                          IRepository<MessageAttachment, Guid> messageAttachmentRepository,
+                          IMapper mapper)
     {
-        _unitOfWork = unitOfWork;
+        _messageRepository = messageRepository;
+        _messageStatusRepository = messageStatusRepository;
+        _messageAttachmentRepository = messageAttachmentRepository;
         _mapper = mapper;
     }
 
     public async Task<MessageDto?> GetByIdAsync(Guid id)
     {
-        var message = await _unitOfWork.Messages.GetByIdAsync(id);
+        var message = await _messageRepository.FindAsync(id);
         if (message == null)
             return null;
 
@@ -31,7 +38,7 @@ public class MessageService : IMessageService
 
     public async Task<IEnumerable<MessageDto>> GetByUserIdAsync(Guid userId, int page = 1, int pageSize = 20)
     {
-        var messages = await _unitOfWork.Messages.FindAsync(m => 
+        var messages = await _messageRepository.GetListAsync(m => 
             m.SenderId == userId || m.ReceiverId == userId);
         
         var pagedMessages = messages
@@ -50,7 +57,7 @@ public class MessageService : IMessageService
 
     public async Task<IEnumerable<MessageDto>> GetByGroupIdAsync(Guid groupId, int page = 1, int pageSize = 20)
     {
-        var messages = await _unitOfWork.Messages.FindAsync(m => m.GroupId == groupId);
+        var messages = await _messageRepository.GetListAsync(m => m.GroupId == groupId);
         
         var pagedMessages = messages
             .OrderByDescending(m => m.CreatedAt)
@@ -68,7 +75,7 @@ public class MessageService : IMessageService
 
     public async Task<IEnumerable<MessageDto>> GetConversationAsync(Guid userId1, Guid userId2, int page = 1, int pageSize = 20)
     {
-        var messages = await _unitOfWork.Messages.FindAsync(m => 
+        var messages = await _messageRepository.GetListAsync(m => 
             (m.SenderId == userId1 && m.ReceiverId == userId2) ||
             (m.SenderId == userId2 && m.ReceiverId == userId1));
         
@@ -97,8 +104,7 @@ public class MessageService : IMessageService
             Content = createMessageDto.Content
         };
 
-        await _unitOfWork.Messages.AddAsync(message);
-        await _unitOfWork.SaveChangesAsync();
+        await _messageRepository.InsertAsync(message, autoSave: true);
 
         // 添加消息状态
         var messageStatus = new MessageStatus
@@ -107,7 +113,7 @@ public class MessageService : IMessageService
             UserId = senderId,
             Status = "Sent"
         };
-        await _unitOfWork.MessageStatuses.AddAsync(messageStatus);
+        await _messageStatusRepository.InsertAsync(messageStatus, autoSave: true);
 
         // 添加附件
         if (createMessageDto.Attachments != null && createMessageDto.Attachments.Any())
@@ -123,11 +129,9 @@ public class MessageService : IMessageService
                     FileSize = attachmentDto.FileSize,
                     ThumbnailPath = attachmentDto.ThumbnailPath
                 };
-                await _unitOfWork.MessageAttachments.AddAsync(attachment);
+                await _messageAttachmentRepository.InsertAsync(attachment, autoSave: true);
             }
         }
-
-        await _unitOfWork.SaveChangesAsync();
 
         // 加载相关数据并返回
         await LoadMessageRelatedData(message);
@@ -136,7 +140,7 @@ public class MessageService : IMessageService
 
     public async Task<bool> DeleteMessageAsync(Guid id, Guid userId)
     {
-        var message = await _unitOfWork.Messages.GetByIdAsync(id);
+        var message = await _messageRepository.FindAsync(id);
         if (message == null || message.SenderId != userId)
             return false;
 
@@ -144,14 +148,13 @@ public class MessageService : IMessageService
         message.DeletedAt = DateTime.UtcNow;
         message.UpdatedAt = DateTime.UtcNow;
 
-        await _unitOfWork.Messages.UpdateAsync(message);
-        await _unitOfWork.SaveChangesAsync();
+        await _messageRepository.UpdateAsync(message, autoSave: true);
         return true;
     }
 
     public async Task<bool> UpdateMessageStatusAsync(Guid messageId, Guid userId, UpdateMessageStatusDto updateDto)
     {
-        var messageStatus = await _unitOfWork.MessageStatuses.FirstOrDefaultAsync(ms => 
+        var messageStatus = await _messageStatusRepository.FirstOrDefaultAsync(ms => 
             ms.MessageId == messageId && ms.UserId == userId);
 
         if (messageStatus == null)
@@ -163,21 +166,19 @@ public class MessageService : IMessageService
                 UserId = userId,
                 Status = updateDto.Status
             };
-            await _unitOfWork.MessageStatuses.AddAsync(messageStatus);
+            await _messageStatusRepository.InsertAsync(messageStatus, autoSave: true);
         }
         else
         {
             messageStatus.Status = updateDto.Status;
-            await _unitOfWork.MessageStatuses.UpdateAsync(messageStatus);
+            await _messageStatusRepository.UpdateAsync(messageStatus, autoSave: true);
         }
-
-        await _unitOfWork.SaveChangesAsync();
         return true;
     }
 
     public async Task<IEnumerable<MessageDto>> SearchMessagesAsync(Guid userId, string keyword, int page = 1, int pageSize = 20)
     {
-        var messages = await _unitOfWork.Messages.FindAsync(m => 
+        var messages = await _messageRepository.GetListAsync(m => 
             (m.SenderId == userId || m.ReceiverId == userId) &&
             m.Content.Contains(keyword) &&
             !m.IsDeleted);

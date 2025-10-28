@@ -1,10 +1,14 @@
 using System.ComponentModel.DataAnnotations;
+using Volo.Abp.Domain.Entities;
 
 namespace WeiDin.Core.Entities;
 
-public class MessageAttachment
+public class MessageAttachment : Entity<Guid>
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public MessageAttachment()
+    {
+        Id = Guid.NewGuid();
+    }
     
     [Required]
     public Guid MessageId { get; set; }

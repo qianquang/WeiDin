@@ -1,10 +1,14 @@
 using System.ComponentModel.DataAnnotations;
+using Volo.Abp.Domain.Entities;
 
 namespace WeiDin.Core.Entities;
 
-public class GroupMember
+public class GroupMember : Entity<Guid>
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
+    public GroupMember()
+    {
+        Id = Guid.NewGuid();
+    }
     
     [Required]
     public Guid GroupId { get; set; }
