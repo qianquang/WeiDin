@@ -1,0 +1,161 @@
+-- 用户表
+CREATE TABLE [Users] (
+    [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    [Username] NVARCHAR(256) NULL,
+    [Email] NVARCHAR(256) NULL,
+    [PhoneNumber] NVARCHAR(256) NULL,
+    [CreatedAt] DATETIME2 NOT NULL,
+    [UpdatedAt] DATETIME2 NULL,
+    [IsDeleted] BIT NOT NULL DEFAULT 0
+);
+
+CREATE UNIQUE INDEX [IX_Users_Username] ON [Users] ([Username]) WHERE [Username] IS NOT NULL;
+CREATE UNIQUE INDEX [IX_Users_Email] ON [Users] ([Email]) WHERE [Email] IS NOT NULL;
+CREATE UNIQUE INDEX [IX_Users_PhoneNumber] ON [Users] ([PhoneNumber]) WHERE [PhoneNumber] IS NOT NULL;
+
+-- 群组表
+CREATE TABLE [Groups] (
+    [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    [Name] NVARCHAR(256) NOT NULL,
+    [OwnerId] UNIQUEIDENTIFIER NOT NULL,
+    [CreatedAt] DATETIME2 NOT NULL,
+    [UpdatedAt] DATETIME2 NULL,
+    [IsDeleted] BIT NOT NULL DEFAULT 0
+);
+
+CREATE INDEX [IX_Groups_Name] ON [Groups] ([Name]);
+
+-- 消息表
+CREATE TABLE [Messages] (
+    [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    [Content] NVARCHAR(MAX) NULL,
+    [MessageType] INT NOT NULL,
+    [SenderId] UNIQUEIDENTIFIER NULL,
+    [ReceiverId] UNIQUEIDENTIFIER NULL,
+    [GroupId] UNIQUEIDENTIFIER NULL,
+    [CreatedAt] DATETIME2 NOT NULL,
+    [UpdatedAt] DATETIME2 NULL,
+    [IsDeleted] BIT NOT NULL DEFAULT 0
+);
+
+CREATE INDEX [IX_Messages_SenderId] ON [Messages] ([SenderId]);
+CREATE INDEX [IX_Messages_ReceiverId] ON [Messages] ([ReceiverId]);
+CREATE INDEX [IX_Messages_GroupId] ON [Messages] ([GroupId]);
+CREATE INDEX [IX_Messages_CreatedAt] ON [Messages] ([CreatedAt]);
+
+-- 消息状态表
+CREATE TABLE [MessageStatuses] (
+    [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    [MessageId] UNIQUEIDENTIFIER NOT NULL,
+    [UserId] UNIQUEIDENTIFIER NOT NULL,
+    [Status] INT NOT NULL,
+    [ReadAt] DATETIME2 NULL,
+    [CreatedAt] DATETIME2 NOT NULL,
+    [UpdatedAt] DATETIME2 NULL
+);
+
+CREATE UNIQUE INDEX [IX_MessageStatuses_MessageId_UserId] ON [MessageStatuses] ([MessageId], [UserId]);
+CREATE INDEX [IX_MessageStatuses_MessageId] ON [MessageStatuses] ([MessageId]);
+CREATE INDEX [IX_MessageStatuses_UserId] ON [MessageStatuses] ([UserId]);
+
+-- 消息附件表
+CREATE TABLE [MessageAttachments] (
+    [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    [MessageId] UNIQUEIDENTIFIER NOT NULL,
+    [FileName] NVARCHAR(500) NOT NULL,
+    [FileType] NVARCHAR(100) NOT NULL,
+    [FileSize] BIGINT NOT NULL,
+    [FileUrl] NVARCHAR(1000) NOT NULL,
+    [CreatedAt] DATETIME2 NOT NULL,
+    [UpdatedAt] DATETIME2 NULL,
+    [IsDeleted] BIT NOT NULL DEFAULT 0
+);
+
+CREATE INDEX [IX_MessageAttachments_MessageId] ON [MessageAttachments] ([MessageId]);
+
+-- 群组成员表
+CREATE TABLE [GroupMembers] (
+    [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    [GroupId] UNIQUEIDENTIFIER NOT NULL,
+    [UserId] UNIQUEIDENTIFIER NOT NULL,
+    [Role] INT NOT NULL,
+    [JoinedAt] DATETIME2 NOT NULL,
+    [CreatedAt] DATETIME2 NOT NULL,
+    [UpdatedAt] DATETIME2 NULL,
+    [IsDeleted] BIT NOT NULL DEFAULT 0
+);
+
+CREATE UNIQUE INDEX [IX_GroupMembers_GroupId_UserId] ON [GroupMembers] ([GroupId], [UserId]);
+CREATE INDEX [IX_GroupMembers_GroupId] ON [GroupMembers] ([GroupId]);
+CREATE INDEX [IX_GroupMembers_UserId] ON [GroupMembers] ([UserId]);
+
+-- 好友关系表
+CREATE TABLE [Friendships] (
+    [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    [UserId] UNIQUEIDENTIFIER NOT NULL,
+    [FriendId] UNIQUEIDENTIFIER NOT NULL,
+    [Status] INT NOT NULL,
+    [Remarks] NVARCHAR(256) NULL,
+    [CreatedAt] DATETIME2 NOT NULL,
+    [UpdatedAt] DATETIME2 NULL,
+    [IsDeleted] BIT NOT NULL DEFAULT 0
+);
+
+CREATE UNIQUE INDEX [IX_Friendships_UserId_FriendId] ON [Friendships] ([UserId], [FriendId]);
+CREATE INDEX [IX_Friendships_UserId] ON [Friendships] ([UserId]);
+CREATE INDEX [IX_Friendships_FriendId] ON [Friendships] ([FriendId]);
+
+-- 黑名单表
+CREATE TABLE [Blacklists] (
+    [Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+    [UserId] UNIQUEIDENTIFIER NOT NULL,
+    [BlockedUserId] UNIQUEIDENTIFIER NOT NULL,
+    [Reason] NVARCHAR(500) NULL,
+    [CreatedAt] DATETIME2 NOT NULL,
+    [UpdatedAt] DATETIME2 NULL,
+    [IsDeleted] BIT NOT NULL DEFAULT 0
+);
+
+CREATE UNIQUE INDEX [IX_Blacklists_UserId_BlockedUserId] ON [Blacklists] ([UserId], [BlockedUserId]);
+CREATE INDEX [IX_Blacklists_UserId] ON [Blacklists] ([UserId]);
+CREATE INDEX [IX_Blacklists_BlockedUserId] ON [Blacklists] ([BlockedUserId]);
+
+-- 外键约束
+ALTER TABLE [Groups] ADD CONSTRAINT [FK_Groups_Users_OwnerId] 
+    FOREIGN KEY ([OwnerId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION;
+
+ALTER TABLE [Messages] ADD CONSTRAINT [FK_Messages_Users_SenderId] 
+    FOREIGN KEY ([SenderId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION;
+
+ALTER TABLE [Messages] ADD CONSTRAINT [FK_Messages_Users_ReceiverId] 
+    FOREIGN KEY ([ReceiverId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION;
+
+ALTER TABLE [Messages] ADD CONSTRAINT [FK_Messages_Groups_GroupId] 
+    FOREIGN KEY ([GroupId]) REFERENCES [Groups] ([Id]) ON DELETE NO ACTION;
+
+ALTER TABLE [MessageStatuses] ADD CONSTRAINT [FK_MessageStatuses_Messages_MessageId] 
+    FOREIGN KEY ([MessageId]) REFERENCES [Messages] ([Id]) ON DELETE CASCADE;
+
+ALTER TABLE [MessageStatuses] ADD CONSTRAINT [FK_MessageStatuses_Users_UserId] 
+    FOREIGN KEY ([UserId]) REFERENCES [Users] ([Id]) ON DELETE CASCADE;
+
+ALTER TABLE [MessageAttachments] ADD CONSTRAINT [FK_MessageAttachments_Messages_MessageId] 
+    FOREIGN KEY ([MessageId]) REFERENCES [Messages] ([Id]) ON DELETE CASCADE;
+
+ALTER TABLE [GroupMembers] ADD CONSTRAINT [FK_GroupMembers_Groups_GroupId] 
+    FOREIGN KEY ([GroupId]) REFERENCES [Groups] ([Id]) ON DELETE CASCADE;
+
+ALTER TABLE [GroupMembers] ADD CONSTRAINT [FK_GroupMembers_Users_UserId] 
+    FOREIGN KEY ([UserId]) REFERENCES [Users] ([Id]) ON DELETE CASCADE;
+
+ALTER TABLE [Friendships] ADD CONSTRAINT [FK_Friendships_Users_UserId] 
+    FOREIGN KEY ([UserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION;
+
+ALTER TABLE [Friendships] ADD CONSTRAINT [FK_Friendships_Users_FriendId] 
+    FOREIGN KEY ([FriendId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION;
+
+ALTER TABLE [Blacklists] ADD CONSTRAINT [FK_Blacklists_Users_UserId] 
+    FOREIGN KEY ([UserId]) REFERENCES [Users] ([Id]) ON DELETE CASCADE;
+
+ALTER TABLE [Blacklists] ADD CONSTRAINT [FK_Blacklists_Users_BlockedUserId] 
+    FOREIGN KEY ([BlockedUserId]) REFERENCES [Users] ([Id]) ON DELETE NO ACTION;
