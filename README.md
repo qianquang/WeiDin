@@ -235,8 +235,6 @@ connection.invoke("SendMessageToUser", targetUserId, message);
 如有问题或建议，请通过以下方式联系：
 
 - 项目Issues: [GitHub Issues](https://github.com/your-repo/issues)
-- 邮箱: your-email@example.com
-
 ---
 
 **注意**: 这是一个毕业设计项目，主要用于学习和演示目的。在生产环境中使用前，请确保进行充分的安全测试和性能优化。
