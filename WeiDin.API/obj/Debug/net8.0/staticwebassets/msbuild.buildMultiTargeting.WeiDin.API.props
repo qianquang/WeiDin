@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\build\WeiDin.API.props" />
-</Project>
