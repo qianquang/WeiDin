@@ -106,7 +106,7 @@ const handleLogin = async () => {
     ElMessage.success('登录成功')
     router.push('/chat')
   } catch (error) {
-    console.error('登录失败:', error)
+    // 错误消息已经在 request.ts 的拦截器中显示了
   } finally {
     isLoading.value = false
   }

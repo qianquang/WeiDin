@@ -9,8 +9,16 @@
         </el-avatar>
         <div class="user-details">
           <div class="username">{{ authStore.user?.nickname || authStore.user?.username }}</div>
-          <div class="status" :class="{ online: authStore.user?.isOnline }">
-            {{ authStore.user?.isOnline ? '在线' : '离线' }}
+          <div class="status-container">
+            <div class="status" :class="{ online: authStore.user?.isOnline }">
+              {{ authStore.user?.isOnline ? '在线' : '离线' }}
+            </div>
+            <el-switch
+              v-model="isOnlineStatus"
+              size="small"
+              @change="handleOnlineStatusChange"
+              style="margin-left: 8px;"
+            />
           </div>
         </div>
         <el-dropdown @command="handleUserCommand">
@@ -208,7 +216,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, reactive } from 'vue'
+import { ref, computed, onMounted, nextTick, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
@@ -240,6 +248,16 @@ const messageText = ref('')
 const messageListRef = ref<HTMLElement>()
 const showAddFriendDialog = ref(false)
 const showCreateGroupDialog = ref(false)
+
+// 在线状态
+const isOnlineStatus = ref(authStore.user?.isOnline || false)
+
+// 监听用户在线状态变化
+watch(() => authStore.user?.isOnline, (newValue) => {
+  if (newValue !== undefined) {
+    isOnlineStatus.value = newValue
+  }
+}, { immediate: true })
 
 // 添加好友表单
 const addFriendForm = reactive<CreateFriendshipDto>({
@@ -305,7 +323,18 @@ const formatTime = (time: string) => {
   return dayjs(time).format('HH:mm')
 }
 
-const handleUserCommand = (command: string) => {
+const handleOnlineStatusChange = async (isOnline: boolean) => {
+  try {
+    await authStore.setOnlineStatus(isOnline)
+    ElMessage.success(isOnline ? '已设置为在线' : '已设置为离线')
+  } catch (error) {
+    // 回滚状态
+    isOnlineStatus.value = !isOnline
+    ElMessage.error('设置在线状态失败')
+  }
+}
+
+const handleUserCommand = async (command: string) => {
   switch (command) {
     case 'profile':
       router.push('/profile')
@@ -314,8 +343,18 @@ const handleUserCommand = (command: string) => {
       router.push('/settings')
       break
     case 'logout':
-      authStore.logout()
-      router.push('/login')
+      try {
+        // 断开 SignalR 连接
+        await chatStore.disconnect()
+        // 执行退出登录
+        await authStore.logout()
+        // 跳转到登录页面
+        router.push('/login')
+      } catch (error) {
+        console.error('退出登录失败:', error)
+        // 即使出错也跳转到登录页面
+        router.push('/login')
+      }
       break
   }
 }
@@ -392,6 +431,11 @@ onMounted(() => {
 .username {
   font-weight: 500;
   color: #333;
+}
+
+.status-container {
+  display: flex;
+  align-items: center;
 }
 
 .status {

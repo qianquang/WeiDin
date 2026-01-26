@@ -13,15 +13,15 @@ const authStore = useAuthStore()
 const chatStore = useChatStore()
 
 onMounted(async () => {
-  // 初始化用户信息
-  authStore.initUser()
+  // 初始化用户信息（异步，会从后端刷新在线状态）
+  await authStore.initUser()
   
   // 如果用户已登录，初始化聊天连接
   if (authStore.isLoggedIn) {
     try {
       await chatStore.initConnection()
     } catch (error) {
-      console.warn('聊天连接初始化失败，但不影响页面显示:', error)
+      // 聊天连接初始化失败，但不影响页面显示
     }
   }
 })

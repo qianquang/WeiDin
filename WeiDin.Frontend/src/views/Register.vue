@@ -170,10 +170,11 @@ const handleRegister = async () => {
     
     const { confirmPassword, ...registerData } = registerForm
     await authStore.register(registerData)
+    
     ElMessage.success('注册成功')
     router.push('/chat')
   } catch (error) {
-    console.error('注册失败:', error)
+    // 错误消息已经在 request.ts 的拦截器中显示了
   } finally {
     isLoading.value = false
   }

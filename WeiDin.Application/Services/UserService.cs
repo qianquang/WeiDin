@@ -46,12 +46,15 @@ public class UserService : ApplicationService, IUserService
 
     public async Task<UserDto> CreateAsync(CreateUserDto createUserDto)
     {
-        // 检查用户名和邮箱是否已存在
+        // 检查用户名、邮箱和手机号是否已存在
         if (await ExistsByUsernameAsync(createUserDto.Username))
             throw new InvalidOperationException("用户名已存在");
 
         if (await ExistsByEmailAsync(createUserDto.Email))
             throw new InvalidOperationException("邮箱已存在");
+
+        if (await ExistsByPhoneNumberAsync(createUserDto.PhoneNumber))
+            throw new InvalidOperationException("手机号已被注册");
 
         var user = new User
         {
@@ -64,7 +67,6 @@ public class UserService : ApplicationService, IUserService
         };
 
         await _userRepository.InsertAsync(user, autoSave: true);
-
         return _mapper.Map<UserDto>(user);
     }
 
@@ -146,6 +148,11 @@ public class UserService : ApplicationService, IUserService
     public async Task<bool> ExistsByEmailAsync(string email)
     {
         return await _userRepository.AnyAsync(u => u.Email == email);
+    }
+
+    public async Task<bool> ExistsByPhoneNumberAsync(string phoneNumber)
+    {
+        return await _userRepository.AnyAsync(u => u.PhoneNumber == phoneNumber);
     }
 
     private static string HashPassword(string password)

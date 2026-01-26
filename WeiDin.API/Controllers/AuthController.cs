@@ -22,38 +22,72 @@ public class AuthController : AbpControllerBase
     }
 
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto registerDto)
+    public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterDto registerDto)
     {
-        var createUserDto = new CreateUserDto
+        try
         {
-            Username = registerDto.Username,
-            Email = registerDto.Email,
-            PhoneNumber = registerDto.PhoneNumber,
-            Password = registerDto.Password,
-            Nickname = registerDto.Nickname,
-            Bio = registerDto.Bio
-        };
+            var createUserDto = new CreateUserDto
+            {
+                Username = registerDto.Username,
+                Email = registerDto.Email,
+                PhoneNumber = registerDto.PhoneNumber,
+                Password = registerDto.Password,
+                Nickname = registerDto.Nickname,
+                Bio = registerDto.Bio
+            };
 
-        var user = await _userService.CreateAsync(createUserDto);
-        var token = GenerateJwtToken(user);
+            var user = await _userService.CreateAsync(createUserDto);
+            var token = GenerateJwtToken(user);
 
-        return Ok(new AuthResponseDto
+            return Ok(new AuthResponseDto
+            {
+                User = user,
+                Token = token
+            });
+        }
+        catch (InvalidOperationException ex)
         {
-            User = user,
-            Token = token
-        });
+            // 处理业务逻辑错误（用户名已存在、邮箱已存在、手机号已存在等）
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex)
+        {
+            // 处理数据库约束异常（唯一索引冲突等）
+            var innerException = ex.InnerException?.Message ?? "";
+            
+            string errorMessage = "注册失败";
+            if (innerException.Contains("Username") || innerException.Contains("IX_Users_Username"))
+            {
+                errorMessage = "用户名已存在";
+            }
+            else if (innerException.Contains("Email") || innerException.Contains("IX_Users_Email"))
+            {
+                errorMessage = "邮箱已被注册";
+            }
+            else if (innerException.Contains("PhoneNumber") || innerException.Contains("IX_Users_PhoneNumber"))
+            {
+                errorMessage = "手机号已被注册";
+            }
+            
+            return BadRequest(new { message = errorMessage });
+        }
+        catch (Exception)
+        {
+            // 处理其他未知错误
+            return StatusCode(500, new { message = "注册失败，请稍后重试" });
+        }
     }
 
     [HttpPost("login")]
-    public async Task<ActionResult<AuthResponseDto>> Login(LoginDto loginDto)
+    public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto loginDto)
     {
         var isValid = await _userService.ValidatePasswordAsync(loginDto.Username, loginDto.Password);
         if (!isValid)
-            return Unauthorized("用户名或密码错误");
+            return Unauthorized(new { message = "用户名或密码错误" });
 
         var user = await _userService.GetByUsernameAsync(loginDto.Username);
         if (user == null)
-            return Unauthorized("用户不存在");
+            return Unauthorized(new { message = "用户不存在" });
 
         // 更新在线状态
         await _userService.SetOnlineStatusAsync(user.Id, true);
@@ -107,11 +141,22 @@ public class AuthController : AbpControllerBase
 
 public class RegisterDto
 {
+    [System.Text.Json.Serialization.JsonPropertyName("username")]
     public string Username { get; set; } = string.Empty;
+    
+    [System.Text.Json.Serialization.JsonPropertyName("email")]
     public string Email { get; set; } = string.Empty;
+    
+    [System.Text.Json.Serialization.JsonPropertyName("phoneNumber")]
     public string PhoneNumber { get; set; } = string.Empty;
+    
+    [System.Text.Json.Serialization.JsonPropertyName("password")]
     public string Password { get; set; } = string.Empty;
+    
+    [System.Text.Json.Serialization.JsonPropertyName("nickname")]
     public string? Nickname { get; set; }
+    
+    [System.Text.Json.Serialization.JsonPropertyName("bio")]
     public string? Bio { get; set; }
 }
 

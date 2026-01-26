@@ -18,6 +18,7 @@ public interface IUserService : IApplicationService
     Task<bool> ExistsAsync(Guid id);
     Task<bool> ExistsByUsernameAsync(string username);
     Task<bool> ExistsByEmailAsync(string email);
+    Task<bool> ExistsByPhoneNumberAsync(string phoneNumber);
 }
 
 

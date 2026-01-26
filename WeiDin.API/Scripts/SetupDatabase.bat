@@ -43,7 +43,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo 6. 创建数据库迁移...
-dotnet ef migrations add InitialCreate --project WeiDin.API --startup-project WeiDin.API
+dotnet ef migrations add InitialCreate --project WeiDin.Infrastructure --startup-project WeiDin.API
 if %errorlevel% neq 0 (
     echo 错误: 创建迁移失败
     pause
@@ -52,7 +52,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo 7. 更新数据库...
-dotnet ef database update --project WeiDin.API --startup-project WeiDin.API
+dotnet ef database update --project WeiDin.Infrastructure --startup-project WeiDin.API
 if %errorlevel% neq 0 (
     echo 错误: 数据库更新失败
     pause

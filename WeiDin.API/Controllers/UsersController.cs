@@ -57,7 +57,7 @@ public class UsersController : AbpControllerBase
     }
 
     [HttpPost("{id}/change-password")]
-    public async Task<ActionResult> ChangePassword(Guid id, ChangePasswordDto changePasswordDto)
+    public async Task<ActionResult> ChangePassword(Guid id, [FromBody] ChangePasswordDto changePasswordDto)
     {
         var result = await _userService.ChangePasswordAsync(id, changePasswordDto);
         if (!result)

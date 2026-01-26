@@ -27,7 +27,6 @@ request.interceptors.request.use(
     return config
   },
   (error) => {
-    console.error('请求错误:', error)
     return Promise.reject(error)
   }
 )
@@ -50,16 +49,39 @@ request.interceptors.response.use(
     return data
   },
   (error) => {
-    console.error('响应错误:', error)
-    
     if (error.response) {
       const { status, data } = error.response
       
+      // 提取错误消息（支持多种格式）
+      let errorMessage = '请求失败'
+      if (data) {
+        if (typeof data === 'string') {
+          errorMessage = data
+        } else if (data.message) {
+          errorMessage = data.message
+        } else if (data.error?.message) {
+          errorMessage = data.error.message
+        } else if (data.title) {
+          errorMessage = data.title
+        }
+      }
+      
       switch (status) {
+        case 400:
+          // Bad Request - 业务逻辑错误（如用户名已存在）
+          ElMessage.error(errorMessage)
+          break
         case 401:
-          ElMessage.error('未授权，请重新登录')
+          // Unauthorized - 显示后端返回的具体错误消息（如"用户名或密码错误"）
+          // 如果后端没有返回具体消息，则显示默认消息
+          const finalMessage = errorMessage !== '请求失败' ? errorMessage : '未授权，请重新登录'
+          ElMessage.error(finalMessage)
+          
+          // 只有在已登录的情况下才执行退出登录（避免登录页面触发logout）
           const authStore = useAuthStore()
-          authStore.logout()
+          if (authStore.isLoggedIn) {
+            authStore.logout()
+          }
           break
         case 403:
           ElMessage.error('拒绝访问')
@@ -68,10 +90,10 @@ request.interceptors.response.use(
           ElMessage.error('请求的资源不存在')
           break
         case 500:
-          ElMessage.error('服务器内部错误')
+          ElMessage.error(errorMessage || '服务器内部错误')
           break
         default:
-          ElMessage.error(data?.message || `请求失败 (${status})`)
+          ElMessage.error(errorMessage || `请求失败 (${status})`)
       }
     } else if (error.request) {
       ElMessage.error('网络错误，请检查网络连接')

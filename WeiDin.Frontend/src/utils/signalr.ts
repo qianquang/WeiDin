@@ -28,8 +28,6 @@ export function useSignalR() {
       connection.value = new signalR.HubConnectionBuilder()
         .withUrl('/chatHub', {
           accessTokenFactory: () => token,
-          skipNegotiation: true,
-          transport: signalR.HttpTransportType.WebSockets,
         })
         .withAutomaticReconnect({
           nextRetryDelayInMilliseconds: (retryContext) => {
@@ -64,7 +62,7 @@ export function useSignalR() {
       isConnected.value = true
       console.log('SignalR连接成功')
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('SignalR连接失败:', error)
       isConnected.value = false
       throw error

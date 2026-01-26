@@ -41,11 +41,11 @@ public class WeiDinInfrastructureModule : AbpModule
                     throw new InvalidOperationException("数据库连接字符串未配置。请在 appsettings.json 中设置 ConnectionStrings:DefaultConnection");
                 }
                 
-                // 使用 ABP Framework 的 UseSqlServer 方法配置 SQL Server 和迁移程序集
-                // 注意：连接字符串会从配置中自动读取，这里只需要配置迁移程序集
-                opts.UseSqlServer(sqlServerOptions =>
+                // 使用 DbContextOptions 配置 SQL Server 和迁移程序集
+                // 必须显式传递连接字符串
+                opts.DbContextOptions.UseSqlServer(connString, sqlServerOptions =>
                 {
-                    sqlServerOptions.MigrationsAssembly("WeiDin.API");
+                    sqlServerOptions.MigrationsAssembly("WeiDin.Infrastructure");
                 });
             });
         });

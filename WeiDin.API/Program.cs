@@ -5,12 +5,10 @@ using WeiDin.API;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 配置Serilog
+// 配置Serilog - 只从配置文件读取，不手动添加输出
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .WriteTo.File("logs/weidin-.txt", rollingInterval: RollingInterval.Day)
     .CreateLogger();
 
 builder.Host

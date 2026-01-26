@@ -29,9 +29,15 @@ export const useAuthStore = defineStore('auth', () => {
       // 设置在线状态
       await userApi.setOnlineStatus(response.user.id, true)
       
+      // 更新本地用户状态
+      if (user.value) {
+        user.value.isOnline = true
+        user.value.lastSeen = new Date().toISOString()
+        localStorage.setItem('user', JSON.stringify(user.value))
+      }
+      
       return response
-    } catch (error) {
-      console.error('登录失败:', error)
+    } catch (error: any) {
       throw error
     } finally {
       isLoading.value = false
@@ -51,9 +57,18 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('token', response.token)
       localStorage.setItem('user', JSON.stringify(response.user))
       
+      // 注册后自动设置在线状态
+      await userApi.setOnlineStatus(response.user.id, true)
+      
+      // 更新本地用户状态
+      if (user.value) {
+        user.value.isOnline = true
+        user.value.lastSeen = new Date().toISOString()
+        localStorage.setItem('user', JSON.stringify(user.value))
+      }
+      
       return response
     } catch (error) {
-      console.error('注册失败:', error)
       throw error
     } finally {
       isLoading.value = false
@@ -70,7 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
         await authApi.logout(user.value.id)
       }
     } catch (error) {
-      console.error('退出登录失败:', error)
+      // 退出登录失败，继续清除本地状态
     } finally {
       // 清除本地状态
       user.value = null
@@ -91,7 +106,6 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('user', JSON.stringify(updatedUser))
       return updatedUser
     } catch (error) {
-      console.error('更新用户信息失败:', error)
       throw error
     } finally {
       isLoading.value = false
@@ -106,7 +120,6 @@ export const useAuthStore = defineStore('auth', () => {
       isLoading.value = true
       await userApi.changePassword(user.value.id, passwordData)
     } catch (error) {
-      console.error('修改密码失败:', error)
       throw error
     } finally {
       isLoading.value = false
@@ -122,18 +135,26 @@ export const useAuthStore = defineStore('auth', () => {
       user.value.isOnline = isOnline
       user.value.lastSeen = new Date().toISOString()
     } catch (error) {
-      console.error('设置在线状态失败:', error)
+      // 设置在线状态失败，静默处理
     }
   }
 
   // 初始化用户信息
-  const initUser = () => {
+  const initUser = async () => {
     const savedUser = localStorage.getItem('user')
     if (savedUser && token.value) {
       try {
         user.value = JSON.parse(savedUser)
+        
+        // 页面刷新后，从后端重新获取用户信息（包括在线状态）
+        if (user.value?.id) {
+          try {
+            await refreshUser()
+          } catch (error) {
+            // 如果刷新失败，不影响页面显示，使用本地存储的数据
+          }
+        }
       } catch (error) {
-        console.error('解析用户信息失败:', error)
         logout()
       }
     }
@@ -141,14 +162,39 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 刷新用户信息
   const refreshUser = async () => {
-    if (!user.value) return
+    // 尝试从 user.value 或 localStorage 获取用户 ID
+    let userId: string | null = null
+    
+    if (user.value?.id) {
+      userId = user.value.id
+    } else {
+      // 从 localStorage 读取保存的用户信息
+      const savedUser = localStorage.getItem('user')
+      if (savedUser) {
+        try {
+          const parsedUser = JSON.parse(savedUser)
+          userId = parsedUser.id
+        } catch (error) {
+          // 解析失败，忽略
+        }
+      }
+    }
+    
+    if (!userId || !token.value) {
+      return
+    }
     
     try {
-      const updatedUser = await userApi.getUserById(user.value.id)
+      const updatedUser = await userApi.getUserById(userId)
+      
+      if (!updatedUser) {
+        throw new Error('用户信息不存在')
+      }
+      
       user.value = updatedUser
       localStorage.setItem('user', JSON.stringify(updatedUser))
     } catch (error) {
-      console.error('刷新用户信息失败:', error)
+      throw error
     }
   }
 
