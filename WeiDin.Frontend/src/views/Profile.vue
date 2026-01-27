@@ -23,6 +23,9 @@
         </div>
         
         <el-form :model="profileForm" label-width="100px" class="profile-form">
+          <el-form-item label="用户ID">
+            <el-input v-model="profileForm.id" disabled />
+          </el-form-item>
           <el-form-item label="用户名">
             <el-input v-model="profileForm.username" disabled />
           </el-form-item>
@@ -105,6 +108,7 @@ const passwordFormRef = ref<FormInstance>()
 const user = computed(() => authStore.user)
 
 const profileForm = reactive({
+  id: '',
   username: '',
   email: '',
   phoneNumber: '',
@@ -143,6 +147,7 @@ const passwordRules: FormRules = {
 
 const initForm = () => {
   if (user.value) {
+    profileForm.id = user.value.id || ''
     profileForm.username = user.value.username
     profileForm.email = user.value.email
     profileForm.phoneNumber = user.value.phoneNumber
