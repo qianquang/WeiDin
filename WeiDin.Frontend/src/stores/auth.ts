@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User, LoginDto, CreateUserDto, UpdateUserDto, ChangePasswordDto } from '@/types'
 import { authApi, userApi } from '@/api'
+import { useSignalRStore } from './signalr'
 
 export const useAuthStore = defineStore('auth', () => {
   // 状态
@@ -67,6 +68,14 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.setItem('user', JSON.stringify(user.value))
       }
       
+      // 初始化 SignalR 连接
+      try {
+        const signalrStore = useSignalRStore()
+        await signalrStore.initConnection()
+      } catch (error) {
+        console.warn('SignalR 连接初始化失败，但不影响注册:', error)
+      }
+      
       return response
     } catch (error) {
       throw error
@@ -78,6 +87,14 @@ export const useAuthStore = defineStore('auth', () => {
   // 退出登录
   const logout = async () => {
     try {
+      // 先断开 SignalR 连接（在清 token 之前）
+      try {
+        const signalrStore = useSignalRStore()
+        await signalrStore.disconnect()
+      } catch (error) {
+        console.warn('断开 SignalR 连接失败，继续登出流程:', error)
+      }
+
       if (user.value) {
         // 设置离线状态
         await userApi.setOnlineStatus(user.value.id, false)

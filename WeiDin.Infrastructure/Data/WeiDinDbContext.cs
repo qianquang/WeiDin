@@ -118,7 +118,11 @@ public class WeiDinDbContext : AbpDbContext<WeiDinDbContext>
         modelBuilder.Entity<Friendship>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasIndex(e => new { e.UserId, e.FriendId }).IsUnique();
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            // 只对 IsActive=true 的记录创建唯一索引，允许 IsActive=false 的多条记录存在
+            entity.HasIndex(e => new { e.UserId, e.FriendId })
+                .IsUnique()
+                .HasFilter("[IsActive] = 1");
 
             entity.HasOne(e => e.User)
                 .WithMany(e => e.Friendships)

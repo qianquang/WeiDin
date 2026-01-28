@@ -43,54 +43,53 @@
         />
       </div>
 
-      <!-- 标签页 -->
-      <el-tabs v-model="activeTab" class="chat-tabs">
-        <el-tab-pane label="聊天" name="chats">
-          <div class="chat-list">
-            <div
-              v-for="session in filteredSessions"
-              :key="session.id"
-              class="chat-item"
-              :class="{ active: currentSessionId === session.id }"
-              @click="selectSession(session)"
-            >
-              <el-avatar :size="40" :src="session.avatar">
-                {{ session.name.charAt(0) }}
-              </el-avatar>
-              <div class="chat-info">
-                <div class="chat-name">{{ session.name }}</div>
-                <div class="last-message">{{ session.lastMessage?.content || '暂无消息' }}</div>
-              </div>
-              <div class="chat-meta">
-                <div class="time">{{ formatTime(session.lastMessage?.createdAt || '') }}</div>
-                <el-badge v-if="session.unreadCount > 0" :value="session.unreadCount" class="unread-badge" />
-              </div>
-            </div>
+      <!-- 快捷操作栏 -->
+      <div class="quick-actions">
+        <el-button
+          type="primary"
+          :icon="UserFilled"
+          size="small"
+          class="quick-action-btn"
+          @click="goToFriendsPage"
+        >
+          好友管理
+        </el-button>
+        <el-button
+          type="success"
+          :icon="Grid"
+          size="small"
+          class="quick-action-btn"
+          @click="goToGroupsPage"
+        >
+          群组管理
+        </el-button>
+      </div>
+
+      <!-- 聊天列表 -->
+      <div class="chat-list">
+        <div
+          v-for="session in filteredSessions"
+          :key="session.id"
+          class="chat-item"
+          :class="{ active: currentSessionId === session.id }"
+          @click="selectSession(session)"
+        >
+          <el-avatar :size="40" :src="session.avatar">
+            {{ session.name.charAt(0) }}
+          </el-avatar>
+          <div class="chat-info">
+            <div class="chat-name">{{ session.name }}</div>
+            <div class="last-message">{{ session.lastMessage?.content || '暂无消息' }}</div>
           </div>
-        </el-tab-pane>
-        
-        <el-tab-pane label="好友" name="friends">
-          <div class="friends-list">
-            <div class="friends-header">
-              <el-button type="primary" size="small" @click="showAddFriendDialog = true">
-                添加好友
-              </el-button>
-            </div>
-            <!-- 好友列表内容 -->
+          <div class="chat-meta">
+            <div class="time">{{ formatTime(session.lastMessage?.createdAt || '') }}</div>
+            <el-badge v-if="session.unreadCount > 0" :value="session.unreadCount" class="unread-badge" />
           </div>
-        </el-tab-pane>
-        
-        <el-tab-pane label="群组" name="groups">
-          <div class="groups-list">
-            <div class="groups-header">
-              <el-button type="primary" size="small" @click="showCreateGroupDialog = true">
-                创建群组
-              </el-button>
-            </div>
-            <!-- 群组列表内容 -->
-          </div>
-        </el-tab-pane>
-      </el-tabs>
+        </div>
+        <div v-if="filteredSessions.length === 0" class="empty-chat-list">
+          <el-empty description="暂无聊天记录" :image-size="100" />
+        </div>
+      </div>
     </div>
 
     <!-- 主聊天区域 -->
@@ -181,22 +180,6 @@
       </div>
     </div>
 
-    <!-- 添加好友对话框 -->
-    <el-dialog v-model="showAddFriendDialog" title="添加好友" width="400px">
-      <el-form :model="addFriendForm" label-width="80px">
-        <el-form-item label="用户ID">
-          <el-input v-model="addFriendForm.friendId" placeholder="请输入用户ID" />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="addFriendForm.remark" placeholder="请输入备注（可选）" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showAddFriendDialog = false">取消</el-button>
-        <el-button type="primary" @click="handleAddFriend">确定</el-button>
-      </template>
-    </el-dialog>
-
     <!-- 创建群组对话框 -->
     <el-dialog v-model="showCreateGroupDialog" title="创建群组" width="400px">
       <el-form :model="createGroupForm" label-width="80px">
@@ -228,25 +211,27 @@ import {
   Paperclip,
   Microphone,
   Position,
-  Document
+  Document,
+  UserFilled,
+  Grid
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
-import { friendshipApi, groupApi } from '@/api'
-import type { CreateFriendshipDto, CreateGroupDto } from '@/types'
+import { useSignalRStore } from '@/stores/signalr'
+import { groupApi } from '@/api'
+import type { CreateGroupDto } from '@/types'
 import dayjs from 'dayjs'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const chatStore = useChatStore()
+const signalrStore = useSignalRStore()
 
 // 响应式数据
 const searchKeyword = ref('')
-const activeTab = ref('chats')
 const currentSessionId = ref<string | null>(null)
 const messageText = ref('')
 const messageListRef = ref<HTMLElement>()
-const showAddFriendDialog = ref(false)
 const showCreateGroupDialog = ref(false)
 
 // 在线状态
@@ -258,12 +243,6 @@ watch(() => authStore.user?.isOnline, (newValue) => {
     isOnlineStatus.value = newValue
   }
 }, { immediate: true })
-
-// 添加好友表单
-const addFriendForm = reactive<CreateFriendshipDto>({
-  friendId: '',
-  remark: ''
-})
 
 // 创建群组表单
 const createGroupForm = reactive<CreateGroupDto>({
@@ -344,9 +323,9 @@ const handleUserCommand = async (command: string) => {
       break
     case 'logout':
       try {
-        // 断开 SignalR 连接
-        await chatStore.disconnect()
-        // 执行退出登录
+        // 断开 SignalR 连接（logout 中已经会断开，这里可以省略，但保留也无妨）
+        // await signalrStore.disconnect()
+        // 执行退出登录（logout 中会自动断开连接）
         await authStore.logout()
         // 跳转到登录页面
         router.push('/login')
@@ -369,16 +348,14 @@ const handleFileUpload = () => {
   console.log('上传文件')
 }
 
-const handleAddFriend = async () => {
-  try {
-    await friendshipApi.addFriend(addFriendForm)
-    ElMessage.success('添加好友成功')
-    showAddFriendDialog.value = false
-    addFriendForm.friendId = ''
-    addFriendForm.remark = ''
-  } catch (error) {
-    console.error('添加好友失败:', error)
-  }
+// 跳转到好友管理页面
+const goToFriendsPage = () => {
+  router.push('/friends')
+}
+
+// 跳转到群组管理页面
+const goToGroupsPage = () => {
+  router.push('/groups')
 }
 
 const handleCreateGroup = async () => {
@@ -394,10 +371,8 @@ const handleCreateGroup = async () => {
 }
 
 onMounted(() => {
-  // 初始化聊天连接
-  if (authStore.isLoggedIn) {
-    chatStore.initConnection()
-  }
+  // 连接现在由 App.vue 统一管理，这里不需要再初始化
+  // 如果需要在页面进入时检查失效标记并刷新数据，可以添加相关逻辑
 })
 </script>
 
@@ -414,6 +389,7 @@ onMounted(() => {
   border-right: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .user-info {
@@ -452,14 +428,31 @@ onMounted(() => {
   border-bottom: 1px solid #e0e0e0;
 }
 
-.chat-tabs {
+.quick-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 15px;
+  border-bottom: 1px solid #e0e0e0;
+  background: #fafafa;
+}
+
+.quick-action-btn {
   flex: 1;
-  overflow: hidden;
 }
 
 .chat-list {
-  height: 100%;
+  flex: 1;
   overflow-y: auto;
+  padding: 10px;
+  min-height: 0;
+}
+
+.empty-chat-list {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  padding: 40px;
 }
 
 .chat-item {
@@ -651,13 +644,4 @@ onMounted(() => {
   flex: 1;
 }
 
-.friends-list,
-.groups-list {
-  padding: 15px;
-}
-
-.friends-header,
-.groups-header {
-  margin-bottom: 15px;
-}
 </style>

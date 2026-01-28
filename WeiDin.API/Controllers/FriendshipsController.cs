@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Volo.Abp.AspNetCore.Mvc;
 using WeiDin.Application.DTOs;
 using WeiDin.Application.Interfaces;
+using WeiDin.API.Hubs;
 
 namespace WeiDin.API.Controllers;
 
@@ -11,11 +13,16 @@ namespace WeiDin.API.Controllers;
 public class FriendshipsController : AbpControllerBase
 {
     private readonly IFriendshipService _friendshipService;
+    private readonly IHubContext<ChatHub> _hubContext;
     private readonly ILogger<FriendshipsController> _logger;
 
-    public FriendshipsController(IFriendshipService friendshipService, ILogger<FriendshipsController> logger)
+    public FriendshipsController(
+        IFriendshipService friendshipService,
+        IHubContext<ChatHub> hubContext,
+        ILogger<FriendshipsController> logger)
     {
         _friendshipService = friendshipService;
+        _hubContext = hubContext;
         _logger = logger;
     }
 
@@ -57,7 +64,7 @@ public class FriendshipsController : AbpControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<FriendshipDto>> AddFriend(CreateFriendshipDto createDto)
+    public async Task<ActionResult<FriendshipDto>> AddFriend([FromBody] CreateFriendshipDto createDto)
     {
         try
         {
@@ -66,16 +73,54 @@ public class FriendshipsController : AbpControllerBase
                 return Unauthorized("无效的用户身份");
 
             var friendship = await _friendshipService.AddFriendAsync(createDto, userId);
+            
+            // 发送 SignalR 通知给被申请的用户
+            try
+            {
+                await _hubContext.Clients.Group($"user_{createDto.FriendId}")
+                    .SendAsync("FriendRequestReceived", friendship);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "发送好友申请通知失败，FriendId: {FriendId}", createDto.FriendId);
+            }
+            
             return CreatedAtAction(nameof(GetFriendship), new { id = friendship.Id }, friendship);
         }
         catch (InvalidOperationException ex)
         {
             return BadRequest(ex.Message);
         }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+        {
+            // 记录详细的数据库错误信息
+            var innerException = dbEx.InnerException?.Message ?? dbEx.Message;
+            _logger.LogError(dbEx, "数据库更新错误: {InnerException}", innerException);
+            
+            // 检查是否是唯一索引冲突
+            // if (innerException.Contains("UNIQUE") || innerException.Contains("duplicate key") || innerException.Contains("IX_Friendships"))
+            // {
+            //     return BadRequest("已经存在相同的好友关系或申请，请检查是否已发送过申请");
+            // }
+            
+            // 检查是否是外键约束
+            if (innerException.Contains("FOREIGN KEY") || innerException.Contains("REFERENCES") || innerException.Contains("FK_Friendships"))
+            {
+                return BadRequest("用户不存在，请检查用户ID是否正确");
+            }
+            
+            // 检查是否是主键错误
+            if (innerException.Contains("PRIMARY KEY") || innerException.Contains("Id"))
+            {
+                return BadRequest("数据ID生成失败，请重试");
+            }
+            
+            return StatusCode(500, $"数据库错误: {innerException}");
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "添加好友时发生错误");
-            return StatusCode(500, "服务器内部错误");
+            _logger.LogError(ex, "发送好友申请时发生错误: {Exception}", ex.ToString());
+            return StatusCode(500, $"服务器内部错误: {ex.Message}");
         }
     }
 
@@ -97,6 +142,132 @@ public class FriendshipsController : AbpControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "删除好友时发生错误，ID: {FriendshipId}", id);
+            return StatusCode(500, "服务器内部错误");
+        }
+    }
+
+    [HttpPost("{id}/accept")]
+    public async Task<ActionResult<FriendshipDto>> AcceptFriendRequest(Guid id)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                return Unauthorized("无效的用户身份");
+
+            var friendship = await _friendshipService.AcceptFriendRequestAsync(id, userId);
+            
+            // 发送 SignalR 通知给申请发起者
+            try
+            {
+                await _hubContext.Clients.Group($"user_{friendship.UserId}")
+                    .SendAsync("FriendRequestAccepted", new
+                    {
+                        FriendshipId = friendship.Id,
+                        FriendName = friendship.FriendName
+                    });
+                
+                // 通知双方新好友已添加
+                await _hubContext.Clients.Group($"user_{friendship.UserId}")
+                    .SendAsync("NewFriendAdded", friendship);
+                await _hubContext.Clients.Group($"user_{friendship.FriendId}")
+                    .SendAsync("NewFriendAdded", friendship);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "发送接受申请通知失败，FriendshipId: {FriendshipId}", id);
+            }
+            
+            return Ok(friendship);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "接受好友申请时发生错误，ID: {FriendshipId}", id);
+            return StatusCode(500, "服务器内部错误");
+        }
+    }
+
+    [HttpPost("{id}/reject")]
+    public async Task<ActionResult> RejectFriendRequest(Guid id)
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                return Unauthorized("无效的用户身份");
+
+            // 先获取申请信息（用于通知）
+            var request = await _friendshipService.GetByIdAsync(id);
+            
+            var result = await _friendshipService.RejectFriendRequestAsync(id, userId);
+            if (!result)
+                return NotFound("好友申请不存在或已被处理");
+
+            // 发送 SignalR 通知给申请发起者
+            if (request != null)
+            {
+                try
+                {
+                    await _hubContext.Clients.Group($"user_{request.UserId}")
+                        .SendAsync("FriendRequestRejected", new
+                        {
+                            FriendshipId = id,
+                            FriendName = request.FriendName
+                        });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "发送拒绝申请通知失败，FriendshipId: {FriendshipId}", id);
+                }
+            }
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "拒绝好友申请时发生错误，ID: {FriendshipId}", id);
+            return StatusCode(500, "服务器内部错误");
+        }
+    }
+
+    [HttpGet("pending")]
+    public async Task<ActionResult<IEnumerable<FriendshipDto>>> GetPendingRequests()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                return Unauthorized("无效的用户身份");
+
+            var requests = await _friendshipService.GetPendingRequestsAsync(userId);
+            return Ok(requests);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取待处理好友申请时发生错误");
+            return StatusCode(500, "服务器内部错误");
+        }
+    }
+
+    [HttpGet("sent")]
+    public async Task<ActionResult<IEnumerable<FriendshipDto>>> GetSentRequests()
+    {
+        try
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                return Unauthorized("无效的用户身份");
+
+            var requests = await _friendshipService.GetSentRequestsAsync(userId);
+            return Ok(requests);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "获取已发送好友申请时发生错误");
             return StatusCode(500, "服务器内部错误");
         }
     }

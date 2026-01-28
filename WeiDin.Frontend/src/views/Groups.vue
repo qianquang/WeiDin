@@ -3,8 +3,13 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>群组管理</span>
-          <el-button type="primary" @click="showCreateGroupDialog = true">创建群组</el-button>
+          <span class="header-title">群组管理</span>
+          <div class="header-actions">
+            <el-button type="primary" :icon="ArrowLeft" @click="goToChatPage">
+              返回聊天
+            </el-button>
+            <el-button type="primary" @click="showCreateGroupDialog = true">创建群组</el-button>
+          </div>
         </div>
       </template>
       
@@ -117,6 +122,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowLeft } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { groupApi } from '@/api'
 import type { Group, CreateGroupDto, UpdateGroupDto, GroupMember } from '@/types'
@@ -219,6 +225,11 @@ const formatDate = (date: string) => {
   return dayjs(date).format('YYYY-MM-DD')
 }
 
+// 返回聊天页面
+const goToChatPage = () => {
+  router.push('/chat')
+}
+
 onMounted(() => {
   loadGroups()
 })
@@ -235,6 +246,18 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .groups-list {

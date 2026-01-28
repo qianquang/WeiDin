@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
+using WeiDin.Application.Interfaces;
 
 namespace WeiDin.API.Hubs;
 
@@ -8,10 +9,12 @@ namespace WeiDin.API.Hubs;
 public class ChatHub : Hub
 {
     private readonly ILogger<ChatHub> _logger;
+    private readonly IFriendshipService _friendshipService;
 
-    public ChatHub(ILogger<ChatHub> logger)
+    public ChatHub(ILogger<ChatHub> logger, IFriendshipService friendshipService)
     {
         _logger = logger;
+        _friendshipService = friendshipService;
     }
 
     public override async Task OnConnectedAsync()
@@ -21,6 +24,21 @@ public class ChatHub : Hub
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{userId}");
             _logger.LogInformation("用户 {UserId} 已连接到聊天Hub", userId);
+            
+            // 检查并发送待处理的好友申请
+            try
+            {
+                var pendingRequests = await _friendshipService.GetPendingRequestsAsync(userId.Value);
+                if (pendingRequests.Any())
+                {
+                    await Clients.Caller.SendAsync("PendingFriendRequestsLoaded", pendingRequests);
+                    _logger.LogInformation("用户 {UserId} 有 {Count} 个待处理的好友申请", userId, pendingRequests.Count());
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "获取用户 {UserId} 的待处理好友申请失败", userId);
+            }
         }
         await base.OnConnectedAsync();
     }

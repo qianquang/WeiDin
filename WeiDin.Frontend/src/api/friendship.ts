@@ -53,4 +53,24 @@ export const friendshipApi = {
   isFriend: (friendId: string): Promise<boolean> => {
     return request.get(`/friendships/is-friend/${friendId}`)
   },
+
+  // 接受好友申请
+  acceptFriendRequest: (id: string): Promise<Friendship> => {
+    return request.post(`/friendships/${id}/accept`)
+  },
+
+  // 拒绝好友申请
+  rejectFriendRequest: (id: string): Promise<void> => {
+    return request.post(`/friendships/${id}/reject`)
+  },
+
+  // 获取待处理的好友申请（收到的申请）
+  getPendingRequests: (): Promise<Friendship[]> => {
+    return request.get('/friendships/pending')
+  },
+
+  // 获取已发送的好友申请
+  getSentRequests: (): Promise<Friendship[]> => {
+    return request.get('/friendships/sent')
+  },
 }

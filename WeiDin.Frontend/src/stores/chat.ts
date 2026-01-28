@@ -3,15 +3,10 @@ import { ref, computed } from 'vue'
 import type { 
   Message, 
   ChatSession, 
-  CreateMessageDto, 
-  SignalRMessage, 
-  SignalRGroupMessage,
-  UserStatusChange,
-  MessageReadNotification,
-  MessageDeliveredNotification
+  CreateMessageDto
 } from '@/types'
 import { messageApi } from '@/api'
-import { useSignalR } from '@/utils/signalr'
+import { useSignalRStore } from './signalr'
 
 export const useChatStore = defineStore('chat', () => {
   // 状态
@@ -19,10 +14,11 @@ export const useChatStore = defineStore('chat', () => {
   const sessions = ref<ChatSession[]>([])
   const currentSessionId = ref<string | null>(null)
   const isLoading = ref(false)
-  const isConnected = ref(false)
 
-  // SignalR连接
-  const { connection, startConnection, stopConnection } = useSignalR()
+  // 从 signalrStore 获取连接（用于发送消息）
+  const signalrStore = useSignalRStore()
+  const connection = computed(() => signalrStore.connection)
+  const isConnected = computed(() => signalrStore.isConnected)
 
   // 计算属性
   const currentMessages = computed(() => {
@@ -39,75 +35,6 @@ export const useChatStore = defineStore('chat', () => {
     return sessions.value.reduce((total, session) => total + session.unreadCount, 0)
   })
 
-  // 初始化SignalR连接
-  const initConnection = async () => {
-    try {
-      await startConnection()
-      if (connection.value) {
-        isConnected.value = true
-        setupSignalRHandlers()
-      }
-    } catch (error) {
-      console.warn('SignalR连接失败，但不影响页面显示:', error)
-    }
-  }
-
-  // 设置SignalR事件处理器
-  const setupSignalRHandlers = () => {
-    if (!connection.value) return
-
-    // 接收私聊消息
-    connection.value.on('ReceiveMessage', (data: SignalRMessage) => {
-      handleReceiveMessage(data)
-    })
-
-    // 接收群聊消息
-    connection.value.on('ReceiveGroupMessage', (data: SignalRGroupMessage) => {
-      handleReceiveGroupMessage(data)
-    })
-
-    // 用户状态变化
-    connection.value.on('UserStatusChanged', (data: UserStatusChange) => {
-      handleUserStatusChange(data)
-    })
-
-    // 消息已读
-    connection.value.on('MessageRead', (data: MessageReadNotification) => {
-      handleMessageRead(data)
-    })
-
-    // 消息已送达
-    connection.value.on('MessageDelivered', (data: MessageDeliveredNotification) => {
-      handleMessageDelivered(data)
-    })
-  }
-
-  // 处理接收到的私聊消息
-  const handleReceiveMessage = (data: SignalRMessage) => {
-    // 这里需要根据实际的消息格式来处理
-    console.log('收到私聊消息:', data)
-  }
-
-  // 处理接收到的群聊消息
-  const handleReceiveGroupMessage = (data: SignalRGroupMessage) => {
-    console.log('收到群聊消息:', data)
-  }
-
-  // 处理用户状态变化
-  const handleUserStatusChange = (data: UserStatusChange) => {
-    console.log('用户状态变化:', data)
-  }
-
-  // 处理消息已读
-  const handleMessageRead = (data: MessageReadNotification) => {
-    console.log('消息已读:', data)
-  }
-
-  // 处理消息已送达
-  const handleMessageDelivered = (data: MessageDeliveredNotification) => {
-    console.log('消息已送达:', data)
-  }
-
   // 发送消息
   const sendMessage = async (messageData: CreateMessageDto) => {
     try {
@@ -117,12 +44,18 @@ export const useChatStore = defineStore('chat', () => {
       // 添加到消息列表
       addMessage(message)
       
-      // 通过SignalR发送
-      if (connection.value) {
-        if (messageData.receiverId) {
-          await connection.value.invoke('SendMessageToUser', messageData.receiverId, message.content)
-        } else if (messageData.groupId) {
-          await connection.value.invoke('SendMessageToGroup', messageData.groupId, message.content)
+      // 通过SignalR发送（如果连接存在）
+      const conn = connection.value
+      if (conn && conn.state === 'Connected') {
+        try {
+          if (messageData.receiverId) {
+            await conn.invoke('SendMessageToUser', messageData.receiverId, message.content)
+          } else if (messageData.groupId) {
+            await conn.invoke('SendMessageToGroup', messageData.groupId, message.content)
+          }
+        } catch (error) {
+          console.warn('通过 SignalR 发送消息失败:', error)
+          // 不影响消息发送成功，因为已经通过 API 发送
         }
       }
       
@@ -230,9 +163,14 @@ export const useChatStore = defineStore('chat', () => {
     try {
       await messageApi.markAsRead(messageId)
       
-      // 通过SignalR发送已读状态
-      if (connection.value) {
-        await connection.value.invoke('MarkMessageAsRead', messageId, currentSessionId.value)
+      // 通过SignalR发送已读状态（如果连接存在）
+      const conn = connection.value
+      if (conn && conn.state === 'Connected') {
+        try {
+          await conn.invoke('MarkMessageAsRead', messageId, currentSessionId.value)
+        } catch (error) {
+          console.warn('通过 SignalR 发送已读状态失败:', error)
+        }
       }
     } catch (error) {
       console.error('标记已读失败:', error)
@@ -252,38 +190,28 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  // 断开连接
-  const disconnect = async () => {
-    try {
-      await stopConnection()
-      isConnected.value = false
-    } catch (error) {
-      console.error('断开连接失败:', error)
-    }
-  }
-
   return {
     // 状态
     messages,
     sessions,
     currentSessionId,
     isLoading,
-    isConnected,
     
     // 计算属性
     currentMessages,
     currentSession,
     unreadCount,
+    isConnected,
+    connection,
     
     // 方法
-    initConnection,
     sendMessage,
+    addMessage,
     loadMessages,
     setCurrentSession,
     addSession,
     removeSession,
     markAsRead,
     searchMessages,
-    disconnect,
   }
 })

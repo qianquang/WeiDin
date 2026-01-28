@@ -11,6 +11,10 @@ public interface IFriendshipService : IApplicationService
     Task<bool> RemoveFriendAsync(Guid friendshipId, Guid userId);
     Task<FriendshipDto> UpdateAsync(Guid id, UpdateFriendshipDto updateDto, Guid userId);
     Task<bool> IsFriendAsync(Guid userId1, Guid userId2);
+    Task<FriendshipDto> AcceptFriendRequestAsync(Guid friendshipId, Guid userId);
+    Task<bool> RejectFriendRequestAsync(Guid friendshipId, Guid userId);
+    Task<IEnumerable<FriendshipDto>> GetPendingRequestsAsync(Guid userId);
+    Task<IEnumerable<FriendshipDto>> GetSentRequestsAsync(Guid userId);
     Task<BlacklistDto> AddToBlacklistAsync(CreateBlacklistDto createDto, Guid userId);
     Task<bool> RemoveFromBlacklistAsync(Guid blacklistId, Guid userId);
     Task<IEnumerable<BlacklistDto>> GetBlacklistAsync(Guid userId);

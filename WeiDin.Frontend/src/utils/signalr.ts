@@ -1,4 +1,4 @@
-import { ref, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import * as signalR from '@microsoft/signalr'
 import { useAuthStore } from '@/stores/auth'
 
@@ -185,11 +185,6 @@ export function useSignalR() {
       throw new Error('SignalR连接未建立')
     }
   }
-
-  // 组件卸载时断开连接
-  onUnmounted(() => {
-    stopConnection()
-  })
 
   return {
     connection,

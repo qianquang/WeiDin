@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace WeiDin.Application.DTOs;
 
 public class FriendshipDto
@@ -17,8 +19,13 @@ public class FriendshipDto
 
 public class CreateFriendshipDto
 {
+    [JsonPropertyName("friendId")]
     public Guid FriendId { get; set; }
+    
+    [JsonPropertyName("groupName")]
     public string? GroupName { get; set; }
+    
+    [JsonPropertyName("remark")]
     public string? Remark { get; set; }
 }
 
