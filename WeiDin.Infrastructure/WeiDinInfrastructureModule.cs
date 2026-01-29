@@ -5,7 +5,9 @@ using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.SqlServer;
 using Volo.Abp.Modularity;
 using WeiDin.Core;
+using WeiDin.Core.Interfaces;
 using WeiDin.Infrastructure.Data;
+using WeiDin.Infrastructure.Services;
 
 namespace WeiDin.Infrastructure;
 
@@ -49,6 +51,10 @@ public class WeiDinInfrastructureModule : AbpModule
                 });
             });
         });
+
+        // 注册动态表服务和消息仓储
+        context.Services.AddTransient<IDynamicTableService, DynamicTableService>();
+        context.Services.AddTransient<IDynamicMessageRepository, DynamicMessageRepository>();
     }
 }
 

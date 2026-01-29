@@ -1,7 +1,10 @@
+using System.Reflection;
 using AutoMapper;
 using WeiDin.Application.DTOs;
 using WeiDin.Application.Interfaces;
 using WeiDin.Core.Entities;
+using WeiDin.Core.Enums;
+using WeiDin.Core.Interfaces;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
 
@@ -11,14 +14,20 @@ public class GroupService : ApplicationService, IGroupService
 {
     private readonly IRepository<Group, Guid> _groupRepository;
     private readonly IRepository<GroupMember, Guid> _groupMemberRepository;
+    private readonly IRepository<Conversation, Guid> _conversationRepository;
+    private readonly IDynamicTableService _dynamicTableService;
     private readonly IMapper _mapper;
 
     public GroupService(IRepository<Group, Guid> groupRepository,
                         IRepository<GroupMember, Guid> groupMemberRepository,
+                        IRepository<Conversation, Guid> conversationRepository,
+                        IDynamicTableService dynamicTableService,
                         IMapper mapper)
     {
         _groupRepository = groupRepository;
         _groupMemberRepository = groupMemberRepository;
+        _conversationRepository = conversationRepository;
+        _dynamicTableService = dynamicTableService;
         _mapper = mapper;
     }
 
@@ -80,6 +89,21 @@ public class GroupService : ApplicationService, IGroupService
         };
 
         await _groupRepository.InsertAsync(group, autoSave: true);
+
+        // 设置 ConversationId = GroupId，创建 Conversation 和动态分表
+        group.ConversationId = group.Id;
+        await _groupRepository.UpdateAsync(group, autoSave: true);
+
+        var conversation = new Conversation
+        {
+            RelationId = group.Id,
+            RelationType = RelationType.Group,
+            CreatedAt = DateTime.UtcNow
+        };
+        // 使用反射设置 Id（因为 Entity<Guid>.Id 是 protected set）
+        typeof(Conversation).GetProperty("Id")!.SetValue(conversation, group.Id);
+        await _conversationRepository.InsertAsync(conversation, autoSave: true);
+        await _dynamicTableService.EnsureConversationTablesAsync(group.Id);
 
         // 添加群主为成员
         var ownerMember = new GroupMember

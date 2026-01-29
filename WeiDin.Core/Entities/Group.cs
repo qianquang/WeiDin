@@ -28,6 +28,9 @@ public class Group : Entity<Guid>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>消息关系 ID，与 GroupId 一致，对应一组消息分表</summary>
+    public Guid? ConversationId { get; set; }
     
     // 导航属性
     public virtual User Owner { get; set; } = null!;

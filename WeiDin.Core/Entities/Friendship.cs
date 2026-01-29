@@ -22,6 +22,9 @@ public class Friendship : Entity<Guid>
     public DateTime? UpdatedAt { get; set; }
     
     public bool IsActive { get; set; } = true;
+
+    /// <summary>消息关系 ID，与发起人 Friendship.Id 一致；接受申请后双向记录共用此值</summary>
+    public Guid? ConversationId { get; set; }
     
     // 导航属性
     public virtual User User { get; set; } = null!;

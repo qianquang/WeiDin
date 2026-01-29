@@ -1,8 +1,11 @@
+using System.Reflection;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using WeiDin.Application.DTOs;
 using WeiDin.Application.Interfaces;
 using WeiDin.Core.Entities;
+using WeiDin.Core.Enums;
+using WeiDin.Core.Interfaces;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
 
@@ -13,16 +16,22 @@ public class FriendshipService : ApplicationService, IFriendshipService
     private readonly IRepository<Friendship, Guid> _friendshipRepository;
     private readonly IRepository<Blacklist, Guid> _blacklistRepository;
     private readonly IRepository<User, Guid> _userRepository;
+    private readonly IRepository<Conversation, Guid> _conversationRepository;
+    private readonly IDynamicTableService _dynamicTableService;
     private readonly IMapper _mapper;
 
     public FriendshipService(IRepository<Friendship, Guid> friendshipRepository,
                              IRepository<Blacklist, Guid> blacklistRepository,
                              IRepository<User, Guid> userRepository,
+                             IRepository<Conversation, Guid> conversationRepository,
+                             IDynamicTableService dynamicTableService,
                              IMapper mapper)
     {
         _friendshipRepository = friendshipRepository;
         _blacklistRepository = blacklistRepository;
         _userRepository = userRepository;
+        _conversationRepository = conversationRepository;
+        _dynamicTableService = dynamicTableService;
         _mapper = mapper;
     }
 
@@ -86,7 +95,8 @@ public class FriendshipService : ApplicationService, IFriendshipService
             GroupName = createDto.GroupName,
             Remark = createDto.Remark,
             IsActive = false, // 申请状态，等待对方同意
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            ConversationId = null // 接受申请后设置
         };
 
         await _friendshipRepository.InsertAsync(friendship, autoSave: true);
@@ -241,7 +251,9 @@ public class FriendshipService : ApplicationService, IFriendshipService
         if (await IsFriendAsync(friendship.UserId, friendship.FriendId))
             throw new InvalidOperationException("已经是好友关系");
 
-        // 激活好友关系（从申请者到被申请者）
+        // 设置 ConversationId = 发起人的 Friendship.Id，两条记录共用
+        var conversationId = friendship.Id;
+        friendship.ConversationId = conversationId;
         friendship.IsActive = true;
         friendship.UpdatedAt = DateTime.UtcNow;
 
@@ -260,6 +272,7 @@ public class FriendshipService : ApplicationService, IFriendshipService
                 GroupName = null, // 反向关系不继承分组
                 Remark = null, // 反向关系不继承备注
                 IsActive = true, // 直接激活
+                ConversationId = conversationId, // 共用发起人的 ConversationId
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -268,10 +281,23 @@ public class FriendshipService : ApplicationService, IFriendshipService
         else if (!reverseFriendshipExists.IsActive)
         {
             // 如果存在但未激活，则激活它
+            reverseFriendshipExists.ConversationId = conversationId;
             reverseFriendshipExists.IsActive = true;
             reverseFriendshipExists.UpdatedAt = DateTime.UtcNow;
             await _friendshipRepository.UpdateAsync(reverseFriendshipExists, autoSave: true);
         }
+
+        // 创建 Conversation 记录和动态分表
+        var conversation = new Conversation
+        {
+            RelationId = friendship.Id,
+            RelationType = RelationType.Friendship,
+            CreatedAt = DateTime.UtcNow
+        };
+        // 使用反射设置 Id（因为 Entity<Guid>.Id 是 protected set）
+        typeof(Conversation).GetProperty("Id")!.SetValue(conversation, conversationId);
+        await _conversationRepository.InsertAsync(conversation, autoSave: true);
+        await _dynamicTableService.EnsureConversationTablesAsync(conversationId);
 
         // 重新加载以包含导航属性
         var queryable = await _friendshipRepository.GetQueryableAsync();

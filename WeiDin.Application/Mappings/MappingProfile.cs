@@ -24,14 +24,14 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.BlacklistedBy, opt => opt.Ignore())
             .ForMember(dest => dest.BlacklistedUsers, opt => opt.Ignore());
 
-        // Message mappings
+        // Message mappings（动态分表查询不加载 Sender/Receiver/Group，需容忍 null）
         CreateMap<Message, MessageDto>()
-            .ForMember(dest => dest.SenderName, opt => opt.MapFrom(src => src.Sender.Username))
-            .ForMember(dest => dest.SenderAvatar, opt => opt.MapFrom(src => src.Sender.Avatar))
+            .ForMember(dest => dest.SenderName, opt => opt.MapFrom(src => src.Sender != null ? src.Sender.Username : ""))
+            .ForMember(dest => dest.SenderAvatar, opt => opt.MapFrom(src => src.Sender != null ? src.Sender.Avatar : null))
             .ForMember(dest => dest.ReceiverName, opt => opt.MapFrom(src => src.Receiver != null ? src.Receiver.Username : null))
             .ForMember(dest => dest.GroupName, opt => opt.MapFrom(src => src.Group != null ? src.Group.Name : null))
-            .ForMember(dest => dest.Attachments, opt => opt.MapFrom(src => src.Attachments))
-            .ForMember(dest => dest.Statuses, opt => opt.MapFrom(src => src.MessageStatuses));
+            .ForMember(dest => dest.Attachments, opt => opt.MapFrom(src => src.Attachments ?? new List<MessageAttachment>()))
+            .ForMember(dest => dest.Statuses, opt => opt.MapFrom(src => src.MessageStatuses ?? new List<MessageStatus>()));
 
         CreateMap<CreateMessageDto, Message>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
@@ -54,9 +54,9 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
             .ForMember(dest => dest.Message, opt => opt.Ignore());
 
-        // MessageStatus mappings
+        // MessageStatus mappings（动态分表不加载 User 导航，容忍 null）
         CreateMap<MessageStatus, MessageStatusDto>()
-            .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.Username));
+            .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.Username : ""));
 
         // Group mappings
         CreateMap<Group, GroupDto>()

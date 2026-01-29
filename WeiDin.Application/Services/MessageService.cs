@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using WeiDin.Application.DTOs;
 using WeiDin.Application.Interfaces;
 using WeiDin.Core.Entities;
+using WeiDin.Core.Inputs;
+using WeiDin.Core.Interfaces;
 using Volo.Abp.Application.Services;
 using Volo.Abp.Domain.Repositories;
 
@@ -10,210 +12,228 @@ namespace WeiDin.Application.Services;
 
 public class MessageService : ApplicationService, IMessageService
 {
-    private readonly IRepository<Message, Guid> _messageRepository;
-    private readonly IRepository<MessageStatus, Guid> _messageStatusRepository;
-    private readonly IRepository<MessageAttachment, Guid> _messageAttachmentRepository;
+    private readonly IDynamicMessageRepository _dynamicMessageRepository;
+    private readonly IRepository<Friendship, Guid> _friendshipRepository;
+    private readonly IRepository<Group, Guid> _groupRepository;
+    private readonly IRepository<GroupMember, Guid> _groupMemberRepository;
     private readonly IMapper _mapper;
 
-    public MessageService(IRepository<Message, Guid> messageRepository,
-                          IRepository<MessageStatus, Guid> messageStatusRepository,
-                          IRepository<MessageAttachment, Guid> messageAttachmentRepository,
+    public MessageService(IDynamicMessageRepository dynamicMessageRepository,
+                          IRepository<Friendship, Guid> friendshipRepository,
+                          IRepository<Group, Guid> groupRepository,
+                          IRepository<GroupMember, Guid> groupMemberRepository,
                           IMapper mapper)
     {
-        _messageRepository = messageRepository;
-        _messageStatusRepository = messageStatusRepository;
-        _messageAttachmentRepository = messageAttachmentRepository;
+        _dynamicMessageRepository = dynamicMessageRepository;
+        _friendshipRepository = friendshipRepository;
+        _groupRepository = groupRepository;
+        _groupMemberRepository = groupMemberRepository;
         _mapper = mapper;
     }
 
     public async Task<MessageDto?> GetByIdAsync(Guid id)
     {
-        var message = await _messageRepository.FindAsync(id);
+        var message = await _dynamicMessageRepository.GetByIdAsync(id);
         if (message == null)
             return null;
 
-        // 加载相关数据
-        await LoadMessageRelatedData(message);
-        return _mapper.Map<MessageDto>(message);
+        return await MapToDtoAsync(message);
     }
 
     public async Task<IEnumerable<MessageDto>> GetByUserIdAsync(Guid userId, int page = 1, int pageSize = 20)
     {
-        var messages = await _messageRepository.GetListAsync(m => 
-            m.SenderId == userId || m.ReceiverId == userId);
+        // 获取用户的所有会话（好友关系和群组）
+        var friendships = await _friendshipRepository.GetListAsync(f => 
+            (f.UserId == userId || f.FriendId == userId) && f.IsActive && f.ConversationId.HasValue);
         
-        var pagedMessages = messages
+        var groupMembers = await _groupMemberRepository.GetListAsync(gm => 
+            gm.UserId == userId && gm.IsActive);
+        var groupIds = groupMembers.Select(gm => gm.GroupId).Distinct().ToList();
+        var groups = await _groupRepository.GetListAsync(g => 
+            groupIds.Contains(g.Id) && g.ConversationId.HasValue);
+
+        var conversationIds = friendships.Select(f => f.ConversationId!.Value)
+            .Concat(groups.Select(g => g.ConversationId!.Value))
+            .Distinct()
+            .ToList();
+
+        // 从所有会话中查询消息并合并
+        var allMessages = new List<Message>();
+        foreach (var convId in conversationIds)
+        {
+            var messages = await _dynamicMessageRepository.GetByConversationAsync(convId, 1, 1000); // 获取足够多的消息
+            allMessages.AddRange(messages.Where(m => m.SenderId == userId || m.ReceiverId == userId));
+        }
+
+        var pagedMessages = allMessages
             .OrderByDescending(m => m.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToList();
 
-        foreach (var message in pagedMessages)
+        var dtos = new List<MessageDto>();
+        foreach (var msg in pagedMessages)
         {
-            await LoadMessageRelatedData(message);
+            dtos.Add(await MapToDtoAsync(msg));
         }
-
-        return _mapper.Map<IEnumerable<MessageDto>>(pagedMessages);
+        return dtos;
     }
 
     public async Task<IEnumerable<MessageDto>> GetByGroupIdAsync(Guid groupId, int page = 1, int pageSize = 20)
     {
-        var messages = await _messageRepository.GetListAsync(m => m.GroupId == groupId);
-        
-        var pagedMessages = messages
-            .OrderByDescending(m => m.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
+        var group = await _groupRepository.FindAsync(groupId);
+        if (group?.ConversationId == null)
+            return Enumerable.Empty<MessageDto>();
 
-        foreach (var message in pagedMessages)
+        var messages = await _dynamicMessageRepository.GetByConversationAsync(group.ConversationId.Value, page, pageSize);
+        var dtos = new List<MessageDto>();
+        foreach (var msg in messages)
         {
-            await LoadMessageRelatedData(message);
+            dtos.Add(await MapToDtoAsync(msg));
         }
-
-        return _mapper.Map<IEnumerable<MessageDto>>(pagedMessages);
+        return dtos;
     }
 
     public async Task<IEnumerable<MessageDto>> GetConversationAsync(Guid userId1, Guid userId2, int page = 1, int pageSize = 20)
     {
-        var messages = await _messageRepository.GetListAsync(m => 
-            (m.SenderId == userId1 && m.ReceiverId == userId2) ||
-            (m.SenderId == userId2 && m.ReceiverId == userId1));
+        // 查找好友关系的 ConversationId（任意一条记录都可以）
+        var friendship = await _friendshipRepository.FirstOrDefaultAsync(f =>
+            ((f.UserId == userId1 && f.FriendId == userId2) ||
+             (f.UserId == userId2 && f.FriendId == userId1)) &&
+            f.IsActive);
         
-        var pagedMessages = messages
-            .OrderByDescending(m => m.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
+        if (friendship?.ConversationId == null)
+            return Enumerable.Empty<MessageDto>();
 
-        foreach (var message in pagedMessages)
+        var messages = await _dynamicMessageRepository.GetByConversationAsync(friendship.ConversationId.Value, page, pageSize);
+        var dtos = new List<MessageDto>();
+        foreach (var msg in messages)
         {
-            await LoadMessageRelatedData(message);
+            dtos.Add(await MapToDtoAsync(msg));
         }
-
-        return _mapper.Map<IEnumerable<MessageDto>>(pagedMessages);
+        return dtos;
     }
 
     public async Task<MessageDto> SendMessageAsync(CreateMessageDto createMessageDto, Guid senderId)
     {
-        var message = new Message
+        Guid conversationId;
+        
+        if (createMessageDto.GroupId.HasValue)
         {
-            SenderId = senderId,
-            ReceiverId = createMessageDto.ReceiverId,
-            GroupId = createMessageDto.GroupId,
-            MessageType = createMessageDto.MessageType,
-            Content = createMessageDto.Content
-        };
-
-        await _messageRepository.InsertAsync(message, autoSave: true);
-
-        // 添加消息状态
-        var messageStatus = new MessageStatus
+            // 群聊：ConversationId = GroupId
+            var group = await _groupRepository.FindAsync(createMessageDto.GroupId.Value);
+            if (group == null)
+                throw new InvalidOperationException("群组不存在");
+            conversationId = group.ConversationId ?? group.Id;
+        }
+        else if (createMessageDto.ReceiverId.HasValue)
         {
-            MessageId = message.Id,
-            UserId = senderId,
-            Status = "Sent"
-        };
-        await _messageStatusRepository.InsertAsync(messageStatus, autoSave: true);
-
-        // 添加附件
-        if (createMessageDto.Attachments != null && createMessageDto.Attachments.Any())
+            // 私聊：查找好友关系的 ConversationId
+            var friendship = await _friendshipRepository.FirstOrDefaultAsync(f =>
+                ((f.UserId == senderId && f.FriendId == createMessageDto.ReceiverId) ||
+                 (f.UserId == createMessageDto.ReceiverId && f.FriendId == senderId)) &&
+                f.IsActive);
+            
+            if (friendship?.ConversationId == null)
+                throw new InvalidOperationException("好友关系不存在或未激活");
+            
+            conversationId = friendship.ConversationId.Value;
+        }
+        else
         {
-            foreach (var attachmentDto in createMessageDto.Attachments)
-            {
-                var attachment = new MessageAttachment
-                {
-                    MessageId = message.Id,
-                    FileName = attachmentDto.FileName,
-                    FilePath = attachmentDto.FilePath,
-                    FileType = attachmentDto.FileType,
-                    FileSize = attachmentDto.FileSize,
-                    ThumbnailPath = attachmentDto.ThumbnailPath
-                };
-                await _messageAttachmentRepository.InsertAsync(attachment, autoSave: true);
-            }
+            throw new InvalidOperationException("必须指定接收者或群组");
         }
 
-        // 加载相关数据并返回
-        await LoadMessageRelatedData(message);
+        var input = MapToCreateMessageInput(createMessageDto);
+        var message = await _dynamicMessageRepository.SendMessageAsync(conversationId, input, senderId);
         return _mapper.Map<MessageDto>(message);
     }
 
     public async Task<bool> DeleteMessageAsync(Guid id, Guid userId)
     {
-        var message = await _messageRepository.FindAsync(id);
-        if (message == null || message.SenderId != userId)
-            return false;
-
-        message.IsDeleted = true;
-        message.DeletedAt = DateTime.UtcNow;
-        message.UpdatedAt = DateTime.UtcNow;
-
-        await _messageRepository.UpdateAsync(message, autoSave: true);
-        return true;
+        return await _dynamicMessageRepository.DeleteMessageAsync(id, userId);
     }
 
     public async Task<bool> UpdateMessageStatusAsync(Guid messageId, Guid userId, UpdateMessageStatusDto updateDto)
     {
-        var messageStatus = await _messageStatusRepository.FirstOrDefaultAsync(ms => 
-            ms.MessageId == messageId && ms.UserId == userId);
-
-        if (messageStatus == null)
-        {
-            // 创建新的消息状态
-            messageStatus = new MessageStatus
-            {
-                MessageId = messageId,
-                UserId = userId,
-                Status = updateDto.Status
-            };
-            await _messageStatusRepository.InsertAsync(messageStatus, autoSave: true);
-        }
-        else
-        {
-            messageStatus.Status = updateDto.Status;
-            await _messageStatusRepository.UpdateAsync(messageStatus, autoSave: true);
-        }
-        return true;
+        return await _dynamicMessageRepository.UpdateMessageStatusAsync(messageId, userId, updateDto.Status);
     }
 
     public async Task<IEnumerable<MessageDto>> SearchMessagesAsync(Guid userId, string keyword, int page = 1, int pageSize = 20)
     {
-        var messages = await _messageRepository.GetListAsync(m => 
-            (m.SenderId == userId || m.ReceiverId == userId) &&
-            m.Content.Contains(keyword) &&
-            !m.IsDeleted);
+        // 获取用户的所有会话
+        var friendships = await _friendshipRepository.GetListAsync(f => 
+            (f.UserId == userId || f.FriendId == userId) && f.IsActive && f.ConversationId.HasValue);
         
-        var pagedMessages = messages
+        var groupMembers = await _groupMemberRepository.GetListAsync(gm => 
+            gm.UserId == userId && gm.IsActive);
+        var groupIds = groupMembers.Select(gm => gm.GroupId).Distinct().ToList();
+        var groups = await _groupRepository.GetListAsync(g => 
+            groupIds.Contains(g.Id) && g.ConversationId.HasValue);
+
+        var conversationIds = friendships.Select(f => f.ConversationId!.Value)
+            .Concat(groups.Select(g => g.ConversationId!.Value))
+            .Distinct()
+            .ToList();
+
+        // 从所有会话中搜索消息
+        var allMessages = new List<Message>();
+        foreach (var convId in conversationIds)
+        {
+            var messages = await _dynamicMessageRepository.GetByConversationAsync(convId, 1, 1000);
+            allMessages.AddRange(messages.Where(m => 
+                (m.SenderId == userId || m.ReceiverId == userId) &&
+                m.Content.Contains(keyword, StringComparison.OrdinalIgnoreCase) &&
+                !m.IsDeleted));
+        }
+
+        var pagedMessages = allMessages
             .OrderByDescending(m => m.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToList();
 
-        foreach (var message in pagedMessages)
+        var dtos = new List<MessageDto>();
+        foreach (var msg in pagedMessages)
         {
-            await LoadMessageRelatedData(message);
+            dtos.Add(await MapToDtoAsync(msg));
         }
-
-        return _mapper.Map<IEnumerable<MessageDto>>(pagedMessages);
+        return dtos;
     }
 
     public async Task<bool> MarkAsReadAsync(Guid messageId, Guid userId)
     {
-        return await UpdateMessageStatusAsync(messageId, userId, new UpdateMessageStatusDto { Status = "Read" });
+        return await _dynamicMessageRepository.MarkAsReadAsync(messageId, userId);
     }
 
     public async Task<bool> MarkAsDeliveredAsync(Guid messageId, Guid userId)
     {
-        return await UpdateMessageStatusAsync(messageId, userId, new UpdateMessageStatusDto { Status = "Delivered" });
+        return await _dynamicMessageRepository.MarkAsDeliveredAsync(messageId, userId);
     }
 
-    private Task LoadMessageRelatedData(Message message)
+    private Task<MessageDto> MapToDtoAsync(Message message)
     {
-        // 这里可以添加预加载相关数据的逻辑
-        // 由于我们使用的是简单的Repository模式，这里暂时不实现
-        // 在实际项目中，可以使用Include方法预加载相关数据
-        return Task.CompletedTask;
+        var dto = _mapper.Map<MessageDto>(message);
+        return Task.FromResult(dto);
+    }
+
+    private static CreateMessageInput MapToCreateMessageInput(CreateMessageDto dto)
+    {
+        return new CreateMessageInput
+        {
+            ReceiverId = dto.ReceiverId,
+            GroupId = dto.GroupId,
+            MessageType = dto.MessageType ?? "Text",
+            Content = dto.Content,
+            Attachments = dto.Attachments?.Select(a => new CreateMessageAttachmentInput
+            {
+                FileName = a.FileName,
+                FilePath = a.FilePath,
+                FileType = a.FileType,
+                FileSize = a.FileSize,
+                ThumbnailPath = a.ThumbnailPath
+            }).ToList()
+        };
     }
 }
 
