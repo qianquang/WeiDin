@@ -18,41 +18,53 @@ public sealed class DynamicMessageRepository : IDynamicMessageRepository
         _tables = tables;
     }
 
-    public async Task<Message?> GetByIdAsync(Guid messageId, CancellationToken cancellationToken = default)
+    public async Task<Message?> GetByIdAsync(Guid relationId, Guid messageId, CancellationToken cancellationToken = default)
     {
-        var idx = await _db.MessageConversationIndexes.FindAsync(new object[] { messageId }, cancellationToken);
-        if (idx == null) return null;
-
-        var convId = idx.ConversationId;
-        var msgT = _tables.GetTableName("Message", convId);
-        var sql = $"SELECT * FROM [dbo].[{Escape(msgT)}] WHERE [Id] = '{messageId}'";
+        await _tables.EnsureConversationTablesAsync(relationId, cancellationToken);
+        var msgT = _tables.GetTableName("Message", relationId);
+        var sql = $"SELECT * FROM [dbo].[{Escape(msgT)}] WHERE [Id] = '{messageId}' AND [IsDeleted] = 0";
         var list = await _db.Set<Message>().FromSqlRaw(sql).ToListAsync(cancellationToken);
         var msg = list.FirstOrDefault();
-        if (msg == null) return null;
-
-        await LoadAttachmentsAndStatusesAsync(convId, msg, cancellationToken);
+        if (msg != null)
+            await LoadAttachmentsAndStatusesAsync(relationId, msg, cancellationToken);
         return msg;
     }
 
-    public async Task<IReadOnlyList<Message>> GetByConversationAsync(Guid conversationId, int page, int pageSize, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Message>> GetByRelationIdAsync(Guid relationId, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        await _tables.EnsureConversationTablesAsync(conversationId, cancellationToken);
-        var msgT = _tables.GetTableName("Message", conversationId);
+        await _tables.EnsureConversationTablesAsync(relationId, cancellationToken);
+        var msgT = _tables.GetTableName("Message", relationId);
         var offset = (page - 1) * pageSize;
-        var sql = $"SELECT * FROM [dbo].[{Escape(msgT)}] ORDER BY [CreatedAt] DESC OFFSET {offset} ROWS FETCH NEXT {pageSize} ROWS ONLY";
+        var sql = $@"SELECT * FROM [dbo].[{Escape(msgT)}] WHERE [IsDeleted] = 0 
+ORDER BY [CreatedAt] DESC OFFSET {offset} ROWS FETCH NEXT {pageSize} ROWS ONLY";
         var list = await _db.Set<Message>().FromSqlRaw(sql).ToListAsync(cancellationToken);
         foreach (var m in list)
-            await LoadAttachmentsAndStatusesAsync(conversationId, m, cancellationToken);
+            await LoadAttachmentsAndStatusesAsync(relationId, m, cancellationToken);
         return list;
     }
 
-    public async Task<Message> SendMessageAsync(Guid conversationId, CreateMessageInput input, Guid senderId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<Message>> SearchByRelationAsync(Guid relationId, string keyword, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        await _tables.EnsureConversationTablesAsync(conversationId, cancellationToken);
+        await _tables.EnsureConversationTablesAsync(relationId, cancellationToken);
+        var msgT = _tables.GetTableName("Message", relationId);
+        var kw = EscapeLiteral(keyword ?? "");
+        var offset = (page - 1) * pageSize;
+        var sql = $@"SELECT * FROM [dbo].[{Escape(msgT)}] 
+WHERE [IsDeleted] = 0 AND [Content] LIKE N'%{kw}%' 
+ORDER BY [CreatedAt] DESC OFFSET {offset} ROWS FETCH NEXT {pageSize} ROWS ONLY";
+        var list = await _db.Set<Message>().FromSqlRaw(sql).ToListAsync(cancellationToken);
+        foreach (var m in list)
+            await LoadAttachmentsAndStatusesAsync(relationId, m, cancellationToken);
+        return list;
+    }
+
+    public async Task<Message> SendMessageAsync(Guid relationId, CreateMessageInput input, Guid senderId, CancellationToken cancellationToken = default)
+    {
+        await _tables.EnsureConversationTablesAsync(relationId, cancellationToken);
         var msgId = Guid.NewGuid();
-        var msgT = _tables.GetTableName("Message", conversationId);
-        var stT = _tables.GetTableName("MessageStatus", conversationId);
-        var atT = _tables.GetTableName("MessageAttachment", conversationId);
+        var msgT = _tables.GetTableName("Message", relationId);
+        var stT = _tables.GetTableName("MessageStatus", relationId);
+        var atT = _tables.GetTableName("MessageAttachment", relationId);
 
         var receiverId = input.ReceiverId.HasValue ? $"'{input.ReceiverId}'" : "NULL";
         var groupId = input.GroupId.HasValue ? $"'{input.GroupId}'" : "NULL";
@@ -103,9 +115,6 @@ VALUES ('{aid}','{msgId}',N'{fn}',N'{fp}',N'{ft}',{a.FileSize},{thumb},'{now:O}'
                 }
             }
 
-            await _db.Database.ExecuteSqlRawAsync(
-                $@"INSERT INTO [dbo].[MessageConversationIndex] ([Id],[ConversationId]) VALUES ('{msgId}','{conversationId}')",
-                cancellationToken);
             await tx.CommitAsync(cancellationToken);
         }
         catch
@@ -139,35 +148,38 @@ VALUES ('{aid}','{msgId}',N'{fn}',N'{fp}',N'{ft}',{a.FileSize},{thumb},'{now:O}'
         return msg;
     }
 
-    public async Task<bool> DeleteMessageAsync(Guid messageId, Guid userId, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteMessageAsync(Guid relationId, Guid messageId, Guid userId, CancellationToken cancellationToken = default)
     {
-        var idx = await _db.MessageConversationIndexes.FindAsync(new object[] { messageId }, cancellationToken);
-        if (idx == null) return false;
-
-        var msgT = _tables.GetTableName("Message", idx.ConversationId);
+        await _tables.EnsureConversationTablesAsync(relationId, cancellationToken);
+        var msgT = _tables.GetTableName("Message", relationId);
         var now = DateTime.UtcNow;
         var n = await _db.Database.ExecuteSqlRawAsync(
-            $@"UPDATE [dbo].[{Escape(msgT)}] SET [IsDeleted]=1,[DeletedAt]='{now:O}',[UpdatedAt]='{now:O}' WHERE [Id]='{messageId}' AND [SenderId]='{userId}'",
+            $@"UPDATE [dbo].[{Escape(msgT)}] SET [IsDeleted]=1,[DeletedAt]='{now:O}',[UpdatedAt]='{now:O}' 
+WHERE [Id]='{messageId}' AND [SenderId]='{userId}'",
             cancellationToken);
         return n > 0;
     }
 
-    public async Task<bool> UpdateMessageStatusAsync(Guid messageId, Guid userId, string status, CancellationToken cancellationToken = default)
+    public async Task<bool> UpdateMessageStatusAsync(Guid relationId, Guid messageId, Guid userId, string status, CancellationToken cancellationToken = default)
     {
-        var idx = await _db.MessageConversationIndexes.FindAsync(new object[] { messageId }, cancellationToken);
-        if (idx == null) return false;
-
-        var stT = _tables.GetTableName("MessageStatus", idx.ConversationId);
+        await _tables.EnsureConversationTablesAsync(relationId, cancellationToken);
+        var msgT = _tables.GetTableName("Message", relationId);
+        var stT = _tables.GetTableName("MessageStatus", relationId);
         var statusEsc = EscapeLiteral(status);
         var now = DateTime.UtcNow;
 
+        var checkSql = $"SELECT COUNT(*) FROM [dbo].[{Escape(msgT)}] WHERE [Id] = '{messageId}'";
         var conn = _db.Database.GetDbConnection();
         await _db.Database.OpenConnectionAsync(cancellationToken);
         try
         {
+            await using var checkCmd = conn.CreateCommand();
+            checkCmd!.CommandText = checkSql;
+            var messageExists = Convert.ToInt32(await checkCmd.ExecuteScalarAsync(cancellationToken)) > 0;
+            if (!messageExists) return false;
+
             await using var cmd = conn.CreateCommand();
-            cmd!.CommandText = $@"
-SELECT [Id] FROM [dbo].[{Escape(stT)}] WHERE [MessageId]='{messageId}' AND [UserId]='{userId}'";
+            cmd!.CommandText = $@"SELECT [Id] FROM [dbo].[{Escape(stT)}] WHERE [MessageId]='{messageId}' AND [UserId]='{userId}'";
             await using var r = await cmd.ExecuteReaderAsync(cancellationToken);
             if (await r.ReadAsync(cancellationToken))
             {
@@ -186,22 +198,24 @@ SELECT [Id] FROM [dbo].[{Escape(stT)}] WHERE [MessageId]='{messageId}' AND [User
 VALUES ('{newId}','{messageId}','{userId}',N'{statusEsc}','{now:O}')",
                     cancellationToken);
             }
+            return true;
         }
-        finally { await _db.Database.CloseConnectionAsync(); }
-
-        return true;
+        finally
+        {
+            await _db.Database.CloseConnectionAsync();
+        }
     }
 
-    public Task<bool> MarkAsReadAsync(Guid messageId, Guid userId, CancellationToken cancellationToken = default)
-        => UpdateMessageStatusAsync(messageId, userId, "Read", cancellationToken);
+    public Task<bool> MarkAsReadAsync(Guid relationId, Guid messageId, Guid userId, CancellationToken cancellationToken = default)
+        => UpdateMessageStatusAsync(relationId, messageId, userId, "Read", cancellationToken);
 
-    public Task<bool> MarkAsDeliveredAsync(Guid messageId, Guid userId, CancellationToken cancellationToken = default)
-        => UpdateMessageStatusAsync(messageId, userId, "Delivered", cancellationToken);
+    public Task<bool> MarkAsDeliveredAsync(Guid relationId, Guid messageId, Guid userId, CancellationToken cancellationToken = default)
+        => UpdateMessageStatusAsync(relationId, messageId, userId, "Delivered", cancellationToken);
 
-    private async Task LoadAttachmentsAndStatusesAsync(Guid conversationId, Message msg, CancellationToken ct)
+    private async Task LoadAttachmentsAndStatusesAsync(Guid relationId, Message msg, CancellationToken ct)
     {
-        var atT = _tables.GetTableName("MessageAttachment", conversationId);
-        var stT = _tables.GetTableName("MessageStatus", conversationId);
+        var atT = _tables.GetTableName("MessageAttachment", relationId);
+        var stT = _tables.GetTableName("MessageStatus", relationId);
         var msgId = msg.Id;
 
         var aSql = $"SELECT * FROM [dbo].[{Escape(atT)}] WHERE [MessageId] = '{msgId}'";

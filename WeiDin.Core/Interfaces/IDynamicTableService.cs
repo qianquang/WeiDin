@@ -16,4 +16,7 @@ public interface IDynamicTableService
 
     /// <summary>获取所有已存在分表的 ConversationId（用于批量同步）。</summary>
     Task<IReadOnlyList<Guid>> GetAllConversationIdsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>删除指定会话的三张分表（Message、MessageAttachment、MessageStatus）。</summary>
+    Task DeleteConversationTablesAsync(Guid conversationId, CancellationToken cancellationToken = default);
 }

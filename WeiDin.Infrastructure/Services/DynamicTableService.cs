@@ -66,6 +66,22 @@ END";
         return await GetAllConversationIdsFromTablesAsync($"{MessageBase}_", cancellationToken);
     }
 
+    public async Task DeleteConversationTablesAsync(Guid conversationId, CancellationToken cancellationToken = default)
+    {
+        foreach (var baseName in BaseNames)
+        {
+            var shard = GetTableName(baseName, conversationId);
+            var sql = $@"
+IF EXISTS (SELECT 1 FROM sys.tables t
+  JOIN sys.schemas s ON t.schema_id = s.schema_id
+  WHERE s.name = N'dbo' AND t.name = N'{EscapeSqlLiteral(shard)}')
+BEGIN
+  DROP TABLE [dbo].[{EscapeSqlId(shard)}];
+END";
+            await _db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+        }
+    }
+
     private async Task<List<Guid>> GetAllConversationIdsFromTablesAsync(string tablePrefix, CancellationToken cancellationToken = default)
     {
         var likePattern = tablePrefix.Replace("_", "\\_") + "%";

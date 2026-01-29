@@ -155,10 +155,24 @@ public class GroupService : ApplicationService, IGroupService
         if (!await IsOwnerAsync(id, userId))
             return false;
 
+        var conversationId = group.ConversationId;
+
+        // 软删除群组
         group.IsActive = false;
         group.UpdatedAt = DateTime.UtcNow;
-
         await _groupRepository.UpdateAsync(group, autoSave: true);
+
+        // 删除对应的 Conversation 和分表
+        if (conversationId.HasValue)
+        {
+            var conversation = await _conversationRepository.FindAsync(conversationId.Value);
+            if (conversation != null)
+            {
+                await _conversationRepository.DeleteAsync(conversation);
+                await _dynamicTableService.DeleteConversationTablesAsync(conversationId.Value);
+            }
+        }
+
         return true;
     }
 

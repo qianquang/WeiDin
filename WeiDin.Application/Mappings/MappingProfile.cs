@@ -24,8 +24,9 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.BlacklistedBy, opt => opt.Ignore())
             .ForMember(dest => dest.BlacklistedUsers, opt => opt.Ignore());
 
-        // Message mappings（动态分表查询不加载 Sender/Receiver/Group，需容忍 null）
+        // Message mappings（动态分表查询不加载 Sender/Receiver/Group，需容忍 null；RelationId 由业务层按上下文填充）
         CreateMap<Message, MessageDto>()
+            .ForMember(dest => dest.RelationId, opt => opt.Ignore())
             .ForMember(dest => dest.SenderName, opt => opt.MapFrom(src => src.Sender != null ? src.Sender.Username : ""))
             .ForMember(dest => dest.SenderAvatar, opt => opt.MapFrom(src => src.Sender != null ? src.Sender.Avatar : null))
             .ForMember(dest => dest.ReceiverName, opt => opt.MapFrom(src => src.Receiver != null ? src.Receiver.Username : null))

@@ -3,6 +3,8 @@ namespace WeiDin.Application.DTOs;
 public class MessageDto
 {
     public Guid Id { get; set; }
+    /// <summary>关系/会话标识，对应分表后缀，用于定位 Message_xxx。</summary>
+    public Guid RelationId { get; set; }
     public Guid SenderId { get; set; }
     public string SenderName { get; set; } = string.Empty;
     public string? SenderAvatar { get; set; }
@@ -19,10 +21,14 @@ public class MessageDto
     public List<MessageStatusDto> Statuses { get; set; } = new();
 }
 
+/// <summary>
+/// 发送消息请求：RelationId + 消息内容 + 消息类型；发送人由 JWT 提供。
+/// 依据 RelationId 定位分表并写入。
+/// </summary>
 public class CreateMessageDto
 {
-    public Guid? ReceiverId { get; set; }
-    public Guid? GroupId { get; set; }
+    /// <summary>关系/会话标识，用于查找对应分表 Message_xxx。</summary>
+    public Guid RelationId { get; set; }
     public string MessageType { get; set; } = "Text";
     public string Content { get; set; } = string.Empty;
     public List<CreateMessageAttachmentDto>? Attachments { get; set; }

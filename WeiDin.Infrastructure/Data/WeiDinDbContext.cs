@@ -15,7 +15,6 @@ public class WeiDinDbContext : AbpDbContext<WeiDinDbContext>
     public DbSet<Message> Messages { get; set; }
     public DbSet<MessageStatus> MessageStatuses { get; set; }
     public DbSet<MessageAttachment> MessageAttachments { get; set; }
-    public DbSet<MessageConversationIndex> MessageConversationIndexes { get; set; }
     public DbSet<Group> Groups { get; set; }
     public DbSet<GroupMember> GroupMembers { get; set; }
     public DbSet<Friendship> Friendships { get; set; }
@@ -146,14 +145,6 @@ public class WeiDinDbContext : AbpDbContext<WeiDinDbContext>
             entity.Property(e => e.Id).ValueGeneratedNever(); // Id 由外部设置（FriendshipId 或 GroupId）
             entity.HasIndex(e => e.RelationId);
             entity.HasIndex(e => e.RelationType);
-        });
-
-        // 配置 MessageConversationIndex：Id = MessageId，唯一索引便于按消息 ID 查会话
-        modelBuilder.Entity<MessageConversationIndex>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.HasIndex(e => e.ConversationId);
-            entity.ToTable("MessageConversationIndex");
         });
 
         // 配置Blacklist实体

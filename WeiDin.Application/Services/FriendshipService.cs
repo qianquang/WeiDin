@@ -117,6 +117,8 @@ public class FriendshipService : ApplicationService, IFriendshipService
         if (friendship == null || friendship.UserId != userId)
             return false;
 
+        var conversationId = friendship.ConversationId;
+
         // 删除好友：物理删除记录，允许重新申请
         await _friendshipRepository.DeleteAsync(friendship);
 
@@ -127,6 +129,24 @@ public class FriendshipService : ApplicationService, IFriendshipService
         if (reverseFriendship != null)
         {
             await _friendshipRepository.DeleteAsync(reverseFriendship);
+        }
+
+        // 检查是否还有其他 Friendship 使用同一个 ConversationId
+        // 如果没有，删除 Conversation 和分表
+        if (conversationId.HasValue)
+        {
+            var hasOtherFriendship = await _friendshipRepository.AnyAsync(f => 
+                f.ConversationId == conversationId.Value);
+            
+            if (!hasOtherFriendship)
+            {
+                var conversation = await _conversationRepository.FindAsync(conversationId.Value);
+                if (conversation != null)
+                {
+                    await _conversationRepository.DeleteAsync(conversation);
+                    await _dynamicTableService.DeleteConversationTablesAsync(conversationId.Value);
+                }
+            }
         }
 
         return true;

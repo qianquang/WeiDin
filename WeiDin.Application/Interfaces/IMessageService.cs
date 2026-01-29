@@ -3,19 +3,17 @@ using WeiDin.Application.DTOs;
 
 namespace WeiDin.Application.Interfaces;
 
+/// <summary>
+/// 消息服务。所有操作均基于 RelationId 定位分表，进行查、改、删、发。
+/// </summary>
 public interface IMessageService : IApplicationService
 {
-    Task<MessageDto?> GetByIdAsync(Guid id);
-    Task<IEnumerable<MessageDto>> GetByUserIdAsync(Guid userId, int page = 1, int pageSize = 20);
-    Task<IEnumerable<MessageDto>> GetByGroupIdAsync(Guid groupId, int page = 1, int pageSize = 20);
-    Task<IEnumerable<MessageDto>> GetConversationAsync(Guid userId1, Guid userId2, int page = 1, int pageSize = 20);
+    Task<MessageDto?> GetByIdAsync(Guid relationId, Guid id);
+    Task<IEnumerable<MessageDto>> GetByRelationIdAsync(Guid relationId, int page = 1, int pageSize = 20);
     Task<MessageDto> SendMessageAsync(CreateMessageDto createMessageDto, Guid senderId);
-    Task<bool> DeleteMessageAsync(Guid id, Guid userId);
-    Task<bool> UpdateMessageStatusAsync(Guid messageId, Guid userId, UpdateMessageStatusDto updateDto);
-    Task<IEnumerable<MessageDto>> SearchMessagesAsync(Guid userId, string keyword, int page = 1, int pageSize = 20);
-    Task<bool> MarkAsReadAsync(Guid messageId, Guid userId);
-    Task<bool> MarkAsDeliveredAsync(Guid messageId, Guid userId);
+    Task<bool> DeleteMessageAsync(Guid relationId, Guid id, Guid userId);
+    Task<bool> UpdateMessageStatusAsync(Guid relationId, Guid messageId, Guid userId, UpdateMessageStatusDto updateDto);
+    Task<IEnumerable<MessageDto>> SearchByRelationAsync(Guid relationId, Guid userId, string keyword, int page = 1, int pageSize = 20);
+    Task<bool> MarkAsReadAsync(Guid relationId, Guid messageId, Guid userId);
+    Task<bool> MarkAsDeliveredAsync(Guid relationId, Guid messageId, Guid userId);
 }
-
-
-
