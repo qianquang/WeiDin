@@ -45,6 +45,7 @@ export interface AuthResponse {
 // 消息相关类型
 export interface Message {
   id: string
+  relationId: string
   senderId: string
   senderName: string
   senderAvatar?: string
@@ -80,8 +81,7 @@ export interface MessageStatus {
 }
 
 export interface CreateMessageDto {
-  receiverId?: string
-  groupId?: string
+  relationId: string
   messageType: 'Text' | 'Image' | 'Video' | 'File'
   content: string
   attachments?: CreateMessageAttachmentDto[]
@@ -167,6 +167,8 @@ export interface Friendship {
   remark?: string
   createdAt: string
   isActive: boolean
+  /** 会话/关系标识，私聊消息 API 的 relationId */
+  conversationId?: string
 }
 
 export interface CreateFriendshipDto {
@@ -230,6 +232,8 @@ export interface PaginatedResponse<T> {
 // 聊天相关类型
 export interface ChatSession {
   id: string
+  /** 关系/会话标识，消息 API 的 relationId，用于查改删发 */
+  relationId: string
   type: 'private' | 'group'
   name: string
   avatar?: string

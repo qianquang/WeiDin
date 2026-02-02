@@ -1,63 +1,42 @@
 import request from './request'
-import type { 
-  Message, 
-  CreateMessageDto, 
-  UpdateMessageStatusDto, 
-  PaginationParams,
-  PaginatedResponse 
+import type {
+  Message,
+  CreateMessageDto,
+  UpdateMessageStatusDto,
+  PaginationParams
 } from '@/types'
 
-// 消息相关API
+/** 消息 API：所有操作均基于 relationId 定位分表 */
 export const messageApi = {
-  // 获取消息详情
-  getMessageById: (id: string): Promise<Message> => {
-    return request.get(`/messages/${id}`)
+  getById: (relationId: string, id: string): Promise<Message> => {
+    return request.get(`/messages/relation/${relationId}/${id}`)
   },
 
-  // 获取用户消息
-  getUserMessages: (userId: string, params: PaginationParams): Promise<Message[]> => {
-    return request.get(`/messages/user/${userId}`, { params })
+  getByRelationId: (relationId: string, params: PaginationParams): Promise<Message[]> => {
+    return request.get(`/messages/relation/${relationId}`, { params })
   },
 
-  // 获取群组消息
-  getGroupMessages: (groupId: string, params: PaginationParams): Promise<Message[]> => {
-    return request.get(`/messages/group/${groupId}`, { params })
-  },
-
-  // 获取对话消息
-  getConversation: (userId1: string, userId2: string, params: PaginationParams): Promise<Message[]> => {
-    return request.get(`/messages/conversation/${userId1}/${userId2}`, { params })
-  },
-
-  // 发送消息
-  sendMessage: (data: CreateMessageDto): Promise<Message> => {
+  send: (data: CreateMessageDto): Promise<Message> => {
     return request.post('/messages', data)
   },
 
-  // 删除消息
-  deleteMessage: (id: string): Promise<void> => {
-    return request.delete(`/messages/${id}`)
+  delete: (relationId: string, id: string): Promise<void> => {
+    return request.delete(`/messages/relation/${relationId}/${id}`)
   },
 
-  // 更新消息状态
-  updateMessageStatus: (id: string, data: UpdateMessageStatusDto): Promise<void> => {
-    return request.put(`/messages/${id}/status`, data)
+  updateStatus: (relationId: string, id: string, data: UpdateMessageStatusDto): Promise<void> => {
+    return request.put(`/messages/relation/${relationId}/${id}/status`, data)
   },
 
-  // 标记为已读
-  markAsRead: (id: string): Promise<void> => {
-    return request.post(`/messages/${id}/read`)
+  markAsRead: (relationId: string, id: string): Promise<void> => {
+    return request.post(`/messages/relation/${relationId}/${id}/read`)
   },
 
-  // 标记为已送达
-  markAsDelivered: (id: string): Promise<void> => {
-    return request.post(`/messages/${id}/delivered`)
+  markAsDelivered: (relationId: string, id: string): Promise<void> => {
+    return request.post(`/messages/relation/${relationId}/${id}/delivered`)
   },
 
-  // 搜索消息
-  searchMessages: (keyword: string, params: PaginationParams): Promise<Message[]> => {
-    return request.get('/messages/search', { 
-      params: { keyword, ...params } 
-    })
+  searchByRelation: (relationId: string, params: { keyword: string } & PaginationParams): Promise<Message[]> => {
+    return request.get(`/messages/relation/${relationId}/search`, { params })
   },
 }

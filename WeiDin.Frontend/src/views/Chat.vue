@@ -75,7 +75,7 @@
           @click="selectSession(session)"
         >
           <el-avatar :size="40" :src="session.avatar">
-            {{ session.name.charAt(0) }}
+            {{ session.name?.charAt(0) || '?' }}
           </el-avatar>
           <div class="chat-info">
             <div class="chat-name">{{ session.name }}</div>
@@ -103,7 +103,7 @@
         <div class="chat-header">
           <div class="chat-title">
             <el-avatar :size="32" :src="currentSession?.avatar">
-              {{ currentSession?.name.charAt(0) }}
+              {{ currentSession?.name?.charAt(0) || '?' }}
             </el-avatar>
             <div class="title-info">
               <div class="title-name">{{ currentSession?.name }}</div>
@@ -128,7 +128,7 @@
             :class="{ 'own-message': message.senderId === authStore.userId }"
           >
             <el-avatar :size="32" :src="message.senderAvatar">
-              {{ message.senderName.charAt(0) }}
+              {{ message.senderName?.charAt(0) || '?' }}
             </el-avatar>
             <div class="message-content">
               <div class="message-header">
@@ -200,7 +200,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, reactive, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   MoreFilled,
@@ -217,76 +217,144 @@ import {
 } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
+import { useFriendshipStore } from '@/stores/friendship'
 import { useSignalRStore } from '@/stores/signalr'
 import { groupApi } from '@/api'
-import type { CreateGroupDto } from '@/types'
+import type { CreateGroupDto, ChatSession, Friendship } from '@/types'
 import dayjs from 'dayjs'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const chatStore = useChatStore()
+const friendshipStore = useFriendshipStore()
 const signalrStore = useSignalRStore()
 
-// 响应式数据
 const searchKeyword = ref('')
 const currentSessionId = ref<string | null>(null)
 const messageText = ref('')
 const messageListRef = ref<HTMLElement>()
 const showCreateGroupDialog = ref(false)
-
-// 在线状态
 const isOnlineStatus = ref(authStore.user?.isOnline || false)
 
-// 监听用户在线状态变化
-watch(() => authStore.user?.isOnline, (newValue) => {
-  if (newValue !== undefined) {
-    isOnlineStatus.value = newValue
-  }
+watch(() => authStore.user?.isOnline, (v) => {
+  if (v !== undefined) isOnlineStatus.value = v
 }, { immediate: true })
 
-// 创建群组表单
 const createGroupForm = reactive<CreateGroupDto>({
   name: '',
   description: '',
   maxMembers: 500
 })
 
-// 计算属性
 const filteredSessions = computed(() => {
   if (!searchKeyword.value) return chatStore.sessions
-  return chatStore.sessions.filter(session =>
-    session.name.toLowerCase().includes(searchKeyword.value.toLowerCase())
+  return chatStore.sessions.filter(s =>
+    s.name.toLowerCase().includes(searchKeyword.value.toLowerCase())
   )
 })
 
 const currentSession = computed(() => chatStore.currentSession)
 const currentMessages = computed(() => chatStore.currentMessages)
 
-// 方法
-const selectSession = (session: any) => {
+function selectSession(session: ChatSession) {
   currentSessionId.value = session.id
   chatStore.setCurrentSession(session.id)
-  chatStore.loadMessages(session.id)
+  chatStore.loadMessages(session.relationId)
+}
+
+async function ensureSessionsAndSelectFromQuery() {
+  const uid = authStore.userId
+  if (!uid) return
+
+  await friendshipStore.loadFriends()
+  const friends = friendshipStore.friends
+  let groups: { id: string; name: string; avatar?: string }[] = []
+  try {
+    const list = await groupApi.getUserGroups(uid)
+    groups = list.map((g: { id: string; name: string; avatar?: string }) => ({
+      id: g.id,
+      name: g.name,
+      avatar: g.avatar
+    }))
+  } catch (e) {
+    console.warn('加载用户群组失败:', e)
+  }
+
+  const sessions: ChatSession[] = []
+  for (const f of friends) {
+    const cid = f.conversationId
+    if (!cid) continue
+    sessions.push({
+      id: cid,
+      relationId: cid,
+      type: 'private',
+      name: f.friendName || '好友',
+      avatar: f.friendAvatar,
+      unreadCount: 0
+    })
+  }
+  for (const g of groups) {
+    sessions.push({
+      id: g.id,
+      relationId: g.id,
+      type: 'group',
+      name: g.name,
+      avatar: g.avatar,
+      unreadCount: 0
+    })
+  }
+  sessions.forEach(s => chatStore.addSession(s))
+
+  const friendId = route.query.friend as string | undefined
+  const groupId = route.query.group as string | undefined
+  if (friendId) {
+    const fr = friends.find((f: Friendship) => f.friendId === friendId)
+    if (fr?.conversationId) {
+      chatStore.setCurrentSession(fr.conversationId)
+      currentSessionId.value = fr.conversationId
+      await chatStore.loadMessages(fr.conversationId)
+    } else {
+      ElMessage.warning('无法发起会话，请确认已互为好友')
+    }
+  } else if (groupId) {
+    const exists = sessions.some(s => s.id === groupId)
+    if (exists) {
+      chatStore.setCurrentSession(groupId)
+      currentSessionId.value = groupId
+      await chatStore.loadMessages(groupId)
+    } else {
+      const g = groups.find(gr => gr.id === groupId)
+      if (g) {
+        chatStore.addSession({
+          id: g.id,
+          relationId: g.id,
+          type: 'group',
+          name: g.name,
+          avatar: g.avatar,
+          unreadCount: 0
+        })
+        chatStore.setCurrentSession(g.id)
+        currentSessionId.value = g.id
+        await chatStore.loadMessages(g.id)
+      }
+    }
+  }
 }
 
 const handleSendMessage = async () => {
-  if (!messageText.value.trim() || !currentSessionId.value) return
+  const txt = messageText.value.trim()
+  const session = chatStore.currentSession
+  if (!txt || !session) return
 
   try {
-    const messageData = {
-      content: messageText.value,
-      messageType: 'Text' as const,
-      receiverId: currentSession.value?.type === 'private' ? currentSessionId.value : undefined,
-      groupId: currentSession.value?.type === 'group' ? currentSessionId.value : undefined
-    }
-
-    await chatStore.sendMessage(messageData)
-    messageText.value = ''
-    
-    // 滚动到底部
-    nextTick(() => {
-      scrollToBottom()
+    await chatStore.sendMessage({
+      relationId: session.relationId,
+      content: txt,
+      messageType: 'Text'
     })
+    messageText.value = ''
+    nextTick(() => scrollToBottom())
   } catch (error) {
     console.error('发送消息失败:', error)
   }
@@ -302,12 +370,12 @@ const formatTime = (time: string) => {
   return dayjs(time).format('HH:mm')
 }
 
-const handleOnlineStatusChange = async (isOnline: boolean) => {
+const handleOnlineStatusChange = async (v: string | number | boolean) => {
+  const isOnline = v === true
   try {
     await authStore.setOnlineStatus(isOnline)
     ElMessage.success(isOnline ? '已设置为在线' : '已设置为离线')
   } catch (error) {
-    // 回滚状态
     isOnlineStatus.value = !isOnline
     ElMessage.error('设置在线状态失败')
   }
@@ -371,8 +439,11 @@ const handleCreateGroup = async () => {
 }
 
 onMounted(() => {
-  // 连接现在由 App.vue 统一管理，这里不需要再初始化
-  // 如果需要在页面进入时检查失效标记并刷新数据，可以添加相关逻辑
+  ensureSessionsAndSelectFromQuery()
+})
+
+watch(() => [route.query.friend, route.query.group], () => {
+  ensureSessionsAndSelectFromQuery()
 })
 </script>
 

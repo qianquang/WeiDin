@@ -15,6 +15,8 @@ public class FriendshipDto
     public string? Remark { get; set; }
     public DateTime CreatedAt { get; set; }
     public bool IsActive { get; set; }
+    /// <summary>会话/关系标识，用于消息分表定位；私聊时作为 RelationId。</summary>
+    public Guid? ConversationId { get; set; }
 }
 
 public class CreateFriendshipDto

@@ -131,8 +131,8 @@
                 :key="blocked.id"
                 class="blacklist-item"
               >
-                <el-avatar :size="40" :src="blocked.blockedUserAvatar">
-                  {{ blocked.blockedUserName.charAt(0) }}
+                <el-avatar :size="40" :src="(blocked as any).blockedUserAvatar">
+                  {{ blocked.blockedUserName?.charAt(0) || '?' }}
                 </el-avatar>
                 <div class="blacklist-info">
                   <div class="blocked-name">{{ blocked.blockedUserName }}</div>
@@ -187,7 +187,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Clock, ChatLineRound, Check, Close, Loading, ArrowLeft } from '@element-plus/icons-vue'
 import { useFriendshipStore } from '@/stores/friendship'
 import { useInvalidationStore } from '@/stores/invalidation'
-import type { CreateFriendshipDto, UpdateFriendshipDto } from '@/types'
+import type { CreateFriendshipDto, UpdateFriendshipDto, Friendship } from '@/types'
 import dayjs from 'dayjs'
 
 const router = useRouter()
