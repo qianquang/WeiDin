@@ -257,6 +257,12 @@ const filteredSessions = computed(() => {
 const currentSession = computed(() => chatStore.currentSession)
 const currentMessages = computed(() => chatStore.currentMessages)
 
+// #region agent log
+watch(currentMessages, (newMessages, oldMessages) => {
+  fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Chat.vue:258',message:'currentMessages变化',data:{newLength:newMessages.length,oldLength:oldMessages?.length||0,currentSessionId:currentSessionId.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+}, { deep: true })
+// #endregion
+
 function selectSession(session: ChatSession) {
   currentSessionId.value = session.id
   chatStore.setCurrentSession(session.id)

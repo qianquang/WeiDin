@@ -19,6 +19,7 @@ public interface IFriendshipService : IApplicationService
     Task<bool> RemoveFromBlacklistAsync(Guid blacklistId, Guid userId);
     Task<IEnumerable<BlacklistDto>> GetBlacklistAsync(Guid userId);
     Task<bool> IsBlacklistedAsync(Guid userId, Guid blockedUserId);
+    Task<FriendshipDto?> GetByConversationIdAsync(Guid conversationId, Guid currentUserId);
 }
 
 

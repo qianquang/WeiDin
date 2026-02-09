@@ -7,7 +7,7 @@ using Volo.Abp.Modularity;
 using WeiDin.Core;
 using WeiDin.Core.Interfaces;
 using WeiDin.Infrastructure.Data;
-using WeiDin.Infrastructure.Services;
+using WeiDin.Infrastructure.Repositories;
 
 namespace WeiDin.Infrastructure;
 

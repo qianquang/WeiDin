@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 using Volo.Abp.AspNetCore.Mvc;
 using WeiDin.Application.DTOs;
 using WeiDin.Application.Interfaces;
+using WeiDin.API.Hubs;
 
 namespace WeiDin.API.Controllers;
 
@@ -14,10 +17,20 @@ namespace WeiDin.API.Controllers;
 public class MessagesController : AbpControllerBase
 {
     private readonly IMessageService _messageService;
+    private readonly IFriendshipService _friendshipService;
+    private readonly IHubContext<ChatHub> _hubContext;
+    private readonly ILogger<MessagesController> _logger;
 
-    public MessagesController(IMessageService messageService)
+    public MessagesController(
+        IMessageService messageService,
+        IFriendshipService friendshipService,
+        IHubContext<ChatHub> hubContext,
+        ILogger<MessagesController> logger)
     {
         _messageService = messageService;
+        _friendshipService = friendshipService;
+        _hubContext = hubContext;
+        _logger = logger;
     }
 
     /// <summary>按 RelationId + 消息 Id 查询单条消息。</summary>
@@ -48,6 +61,99 @@ public class MessagesController : AbpControllerBase
             return Unauthorized("无效的用户身份");
 
         var message = await _messageService.SendMessageAsync(createMessageDto, senderId);
+        
+        // #region agent log
+        _logger.LogInformation("[DEBUG-A] SendMessage开始: senderId={SenderId}, messageId={MessageId}, relationId={RelationId}, receiverId={ReceiverId}, groupId={GroupId}",
+            senderId, message.Id, message.RelationId, message.ReceiverId, message.GroupId);
+        // #endregion
+        
+        // 发送 SignalR 通知给接收方
+        try
+        {
+            // 如果是私聊消息，发送给接收方用户
+            Guid? receiverId = message.ReceiverId;
+            
+            // #region agent log
+            _logger.LogInformation("[DEBUG-A] 初始receiverId检查: receiverId={ReceiverId}, groupId={GroupId}",
+                receiverId, message.GroupId);
+            // #endregion
+            
+            // 如果 ReceiverId 为空，尝试通过 relationId (conversationId) 查询 Friendship 获取接收方ID
+            if (!receiverId.HasValue && !message.GroupId.HasValue)
+            {
+                // #region agent log
+                _logger.LogInformation("[DEBUG-A] 查询Friendship获取receiverId: relationId={RelationId}, senderId={SenderId}",
+                    message.RelationId, senderId);
+                // #endregion
+                
+                var friendship = await _friendshipService.GetByConversationIdAsync(message.RelationId, senderId);
+                if (friendship != null)
+                {
+                    // 确定接收方：如果 friendship.UserId == senderId，则接收方是 friendship.FriendId，否则是 friendship.UserId
+                    receiverId = friendship.UserId == senderId ? friendship.FriendId : friendship.UserId;
+                    
+                    // #region agent log
+                    _logger.LogInformation("[DEBUG-A] Friendship查询成功: userId={UserId}, friendId={FriendId}, 确定receiverId={ReceiverId}",
+                        friendship.UserId, friendship.FriendId, receiverId);
+                    // #endregion
+                }
+                else
+                {
+                    // #region agent log
+                    _logger.LogWarning("[DEBUG-A] Friendship查询失败: relationId={RelationId}, senderId={SenderId}",
+                        message.RelationId, senderId);
+                    // #endregion
+                }
+            }
+            
+            if (receiverId.HasValue)
+            {
+                var groupName = $"user_{receiverId.Value}";
+                // #region agent log
+                _logger.LogInformation("[DEBUG-A] 准备发送SignalR通知: groupName={GroupName}, messageId={MessageId}",
+                    groupName, message.Id);
+                // #endregion
+                
+                await _hubContext.Clients.Group(groupName).SendAsync("ReceiveMessage", message);
+                _logger.LogInformation("已通过 SignalR 发送消息通知给用户 {ReceiverId}", receiverId.Value);
+                
+                // #region agent log
+                _logger.LogInformation("[DEBUG-A] SignalR通知发送完成: groupName={GroupName}, messageId={MessageId}",
+                    groupName, message.Id);
+                // #endregion
+            }
+            else
+            {
+                // #region agent log
+                _logger.LogWarning("[DEBUG-A] receiverId为空，跳过SignalR通知: messageId={MessageId}",
+                    message.Id);
+                // #endregion
+            }
+            
+            // 如果是群组消息，发送给群组所有成员
+            if (message.GroupId.HasValue)
+            {
+                var groupName = $"group_{message.GroupId.Value}";
+                // #region agent log
+                _logger.LogInformation("[DEBUG-A] 发送群组消息: groupName={GroupName}, messageId={MessageId}",
+                    groupName, message.Id);
+                // #endregion
+                
+                await _hubContext.Clients.Group(groupName).SendAsync("ReceiveGroupMessage", message);
+                _logger.LogInformation("已通过 SignalR 发送群组消息通知给群组 {GroupId}", message.GroupId.Value);
+            }
+        }
+        catch (Exception ex)
+        {
+            // SignalR 通知失败不影响消息保存的成功响应
+            _logger.LogWarning(ex, "发送 SignalR 通知失败，但消息已成功保存");
+            
+            // #region agent log
+            _logger.LogError(ex, "[DEBUG-A] SignalR通知发送异常: messageId={MessageId}, error={Error}",
+                message.Id, ex.Message);
+            // #endregion
+        }
+        
         return CreatedAtAction(
             nameof(GetMessage),
             new { relationId = message.RelationId, id = message.Id },

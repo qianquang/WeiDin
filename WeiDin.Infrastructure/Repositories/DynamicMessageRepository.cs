@@ -5,7 +5,7 @@ using WeiDin.Core.Inputs;
 using WeiDin.Core.Interfaces;
 using WeiDin.Infrastructure.Data;
 
-namespace WeiDin.Infrastructure.Services;
+namespace WeiDin.Infrastructure.Repositories;
 
 public sealed class DynamicMessageRepository : IDynamicMessageRepository
 {

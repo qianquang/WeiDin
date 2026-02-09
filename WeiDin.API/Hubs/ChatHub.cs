@@ -22,8 +22,14 @@ public class ChatHub : Hub
         var userId = GetUserId();
         if (userId.HasValue)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, $"user_{userId}");
-            _logger.LogInformation("用户 {UserId} 已连接到聊天Hub", userId);
+            var groupName = $"user_{userId}";
+            await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+            _logger.LogInformation("用户 {UserId} 已连接到聊天Hub，已加入组 {GroupName}，连接ID {ConnectionId}", userId, groupName, Context.ConnectionId);
+            
+            // #region agent log
+            _logger.LogInformation("[DEBUG-B] 用户连接SignalR: userId={UserId}, groupName={GroupName}, connectionId={ConnectionId}",
+                userId.Value, groupName, Context.ConnectionId);
+            // #endregion
             
             // 检查并发送待处理的好友申请
             try

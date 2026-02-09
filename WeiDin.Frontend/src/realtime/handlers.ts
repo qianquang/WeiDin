@@ -7,6 +7,7 @@ import { realtimeBus } from './bus'
 import { useFriendshipStore } from '@/stores/friendship'
 import { useChatStore } from '@/stores/chat'
 import { useInvalidationStore } from '@/stores/invalidation'
+import { useAuthStore } from '@/stores/auth'
 import { ElMessage } from 'element-plus'
 import type { 
   Friendship, 
@@ -25,6 +26,11 @@ export function registerRealtimeHandlers(): void {
   const friendshipStore = useFriendshipStore()
   const chatStore = useChatStore()
   const invalidationStore = useInvalidationStore()
+  const authStore = useAuthStore()
+  
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'handlers.ts:24',message:'注册实时事件处理器',data:{currentUserId:authStore.userId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
 
   // ========== 好友相关事件 ==========
 
@@ -81,23 +87,57 @@ export function registerRealtimeHandlers(): void {
 
   // 接收私聊消息
   realtimeBus.on('ReceiveMessage', (data: SignalRMessage) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'handlers.ts:83',message:'ReceiveMessage处理器触发',data:{hasData:!!data,dataId:data?.id,dataRelationId:data?.relationId,dataSenderId:data?.senderId,dataReceiverId:data?.receiverId,currentUserId:authStore.userId,isReceiver:data?.receiverId===authStore.userId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    
     console.log('收到私聊消息:', data)
-    if (data) {
-      invalidationStore.markStale('chat')
-      // 注意：这里需要根据实际的消息格式转换
-      // 如果 SignalRMessage 与 Message 格式不同，需要转换
-      // chatStore.addMessage(convertToMessage(data))
-      // 暂时只标记失效，页面进入时会 refetch
+    if (data && data.id && data.relationId) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'handlers.ts:87',message:'准备添加消息到store',data:{messageId:data.id,relationId:data.relationId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+      
+      // 直接添加消息到 store（SignalRMessage 就是 Message 类型）
+      chatStore.addMessage(data)
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'handlers.ts:90',message:'消息已添加到store',data:{messageId:data.id,relationId:data.relationId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+      
+      // 更新会话的最后消息和未读计数
+      chatStore.updateSessionLastMessage(data.relationId, data)
+      
+      // #region agent log
+      const session = chatStore.sessions.find(s => s.relationId === data.relationId)
+      fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'handlers.ts:94',message:'会话更新完成',data:{messageId:data.id,relationId:data.relationId,sessionExists:!!session,currentSessionId:chatStore.currentSessionId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
+      
+      // 如果会话不存在，标记失效以便页面重新加载会话列表
+      if (!session) {
+        invalidationStore.markStale('chat')
+      }
+    } else {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'handlers.ts:98',message:'数据验证失败',data:{hasData:!!data,hasId:!!data?.id,hasRelationId:!!data?.relationId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
     }
   })
 
   // 接收群聊消息
   realtimeBus.on('ReceiveGroupMessage', (data: SignalRGroupMessage) => {
     console.log('收到群聊消息:', data)
-    if (data) {
-      invalidationStore.markStale('chat')
-      // 同上，需要转换格式
-      // chatStore.addMessage(convertToGroupMessage(data))
+    if (data && data.id && data.relationId) {
+      // 直接添加消息到 store（SignalRGroupMessage 就是 Message 类型）
+      chatStore.addMessage(data)
+      
+      // 更新会话的最后消息和未读计数
+      chatStore.updateSessionLastMessage(data.relationId, data)
+      
+      // 如果会话不存在，标记失效以便页面重新加载会话列表
+      const session = chatStore.sessions.find(s => s.relationId === data.relationId)
+      if (!session) {
+        invalidationStore.markStale('chat')
+      }
     }
   })
 

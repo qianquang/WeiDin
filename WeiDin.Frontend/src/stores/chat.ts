@@ -33,15 +33,8 @@ export const useChatStore = defineStore('chat', () => {
       isLoading.value = true
       const message = await messageApi.send(messageData)
       addMessage(message)
-
-      const conn = connection.value
-      if (conn && conn.state === 'Connected') {
-        try {
-          await conn.invoke('SendMessageToRelation', messageData.relationId, message.content)
-        } catch (e) {
-          console.warn('SignalR SendMessageToRelation failed:', e)
-        }
-      }
+      // 注意：后端 MessagesController 在发送消息后会自动通过 SignalR 发送通知
+      // 前端无需再调用 SignalR，直接返回消息即可
       return message
     } catch (error) {
       console.error('发送消息失败:', error)
@@ -52,15 +45,31 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   const addMessage = (message: Message) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.ts:54',message:'addMessage调用',data:{messageId:message.id,relationId:message.relationId,currentSessionId:currentSessionId.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    
     const rid = message.relationId
-    if (!rid) return
+    if (!rid) {
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.ts:57',message:'relationId为空，退出',data:{messageId:message.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+      return
+    }
     if (!messages.value.has(rid)) messages.value.set(rid, [])
     const list = messages.value.get(rid)!
     const i = list.findIndex(m => m.id === message.id)
-    if (i >= 0) list[i] = message
-    else {
+    if (i >= 0) {
+      list[i] = message
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.ts:63',message:'消息已更新',data:{messageId:message.id,relationId:rid,listLength:list.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
+    } else {
       list.push(message)
       list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.ts:66',message:'消息已添加',data:{messageId:message.id,relationId:rid,listLength:list.length,isCurrentSession:currentSessionId.value===rid},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
     }
   }
 
@@ -97,15 +106,36 @@ export const useChatStore = defineStore('chat', () => {
     if (currentSessionId.value === sessionId) currentSessionId.value = null
   }
 
+  const updateSessionLastMessage = (relationId: string, message: Message) => {
+    const session = sessions.value.find(s => s.relationId === relationId)
+    if (session) {
+      session.lastMessage = message
+      // 如果当前不在查看该会话，增加未读计数
+      if (currentSessionId.value !== session.id) {
+        session.unreadCount = (session.unreadCount || 0) + 1
+      }
+    }
+  }
+
   const markAsRead = async (relationId: string, messageId: string) => {
     try {
       await messageApi.markAsRead(relationId, messageId)
-      const conn = connection.value
-      if (conn?.state === 'Connected') {
-        try {
-          await conn.invoke('MarkMessageAsRead', messageId, relationId)
-        } catch (e) {
-          console.warn('SignalR MarkMessageAsRead failed:', e)
+      
+      // 通过 SignalR 通知消息发送方消息已被读取
+      // 需要先获取消息对象以确定发送方 ID
+      const messageList = messages.value.get(relationId)
+      const message = messageList?.find(m => m.id === messageId)
+      
+      if (message?.senderId) {
+        const conn = connection.value
+        if (conn?.state === 'Connected') {
+          try {
+            // 后端 ChatHub.MarkMessageAsRead 期望参数: (messageId, targetUserId)
+            // targetUserId 应该是消息的发送方，因为我们要通知发送方消息已被接收方读取
+            await conn.invoke('MarkMessageAsRead', messageId, message.senderId)
+          } catch (e) {
+            console.warn('SignalR MarkMessageAsRead failed:', e)
+          }
         }
       }
     } catch (error) {
@@ -141,6 +171,7 @@ export const useChatStore = defineStore('chat', () => {
     setCurrentSession,
     addSession,
     removeSession,
+    updateSessionLastMessage,
     markAsRead,
     searchByRelation,
   }

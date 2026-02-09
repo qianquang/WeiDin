@@ -4,7 +4,7 @@ using WeiDin.Core.Inputs;
 namespace WeiDin.Core.Interfaces;
 
 /// <summary>
-/// 基于分表的动态消息仓储。按 RelationId（即原 ConversationId）定位 Message_xxx / MessageAttachment_xxx / MessageStatus_xxx。
+/// 基于分表的动态消息仓储。按 RelationId定位 Message_xxx / MessageAttachment_xxx / MessageStatus_xxx。
 /// 查、改、删均依据 RelationId 直接访问对应分表。
 /// </summary>
 public interface IDynamicMessageRepository

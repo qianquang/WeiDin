@@ -34,8 +34,16 @@ export const useSignalRStore = defineStore('signalr', () => {
 
       // 连接成功后，将连接附加到适配器
       if (connection.value) {
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'signalr.ts:36',message:'准备附加适配器',data:{connectionState:connection.value.state,isConnected:_isConnected.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        
         signalRAdapter.attach(connection.value)
         console.log('SignalR 连接已初始化并附加到适配器')
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'signalr.ts:40',message:'适配器附加完成',data:{isAttached:signalRAdapter.isAttached(),connectionState:connection.value.state},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
       }
     } catch (error) {
       console.error('SignalR 连接初始化失败:', error)

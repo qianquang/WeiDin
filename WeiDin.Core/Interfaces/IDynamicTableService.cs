@@ -1,7 +1,7 @@
 namespace WeiDin.Core.Interfaces;
 
 /// <summary>
-/// 动态消息分表管理：按 ConversationId 创建/同步 Message、MessageAttachment、MessageStatus 分表。
+/// 动态消息分表管理：按 RelationId 创建/同步 Message、MessageAttachment、MessageStatus 分表。
 /// </summary>
 public interface IDynamicTableService
 {

@@ -243,19 +243,10 @@ export interface ChatSession {
   lastSeen?: string
 }
 
-// SignalR消息类型
-export interface SignalRMessage {
-  senderId: string
-  message: string
-  timestamp: string
-}
+// SignalR消息类型（后端发送的是完整的 MessageDto，与 Message 类型匹配）
+export type SignalRMessage = Message
 
-export interface SignalRGroupMessage {
-  senderId: string
-  groupId: string
-  message: string
-  timestamp: string
-}
+export type SignalRGroupMessage = Message
 
 export interface UserStatusChange {
   userId: string

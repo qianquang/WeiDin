@@ -369,6 +369,22 @@ public class FriendshipService : ApplicationService, IFriendshipService
 
         return _mapper.Map<IEnumerable<FriendshipDto>>(requests);
     }
+
+    // 通过 ConversationId 获取好友关系（用于确定消息接收方）
+    public async Task<FriendshipDto?> GetByConversationIdAsync(Guid conversationId, Guid currentUserId)
+    {
+        var queryable = await _friendshipRepository.GetQueryableAsync();
+        var friendship = await queryable
+            .Include(f => f.User)
+            .Include(f => f.Friend)
+            .FirstOrDefaultAsync(f => f.ConversationId == conversationId && f.IsActive && 
+                (f.UserId == currentUserId || f.FriendId == currentUserId));
+        
+        if (friendship == null)
+            return null;
+
+        return _mapper.Map<FriendshipDto>(friendship);
+    }
 }
 
 

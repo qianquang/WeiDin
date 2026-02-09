@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WeiDin.Core.Interfaces;
 using WeiDin.Infrastructure.Data;
 
-namespace WeiDin.Infrastructure.Services;
+namespace WeiDin.Infrastructure.Repositories;
 
 public sealed class DynamicTableService : IDynamicTableService
 {
