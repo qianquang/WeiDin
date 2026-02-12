@@ -27,10 +27,16 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('token', response.token)
       localStorage.setItem('user', JSON.stringify(response.user))
       
-      // 设置在线状态
-      await userApi.setOnlineStatus(response.user.id, true)
+      // 在线状态由 ChatHub.OnConnectedAsync 在 SignalR 连接建立时自动设置
+      // 登录后立即建立 SignalR 连接
+      try {
+        const signalrStore = useSignalRStore()
+        await signalrStore.initConnection()
+      } catch (error) {
+        console.warn('登录后 SignalR 连接初始化失败，不影响登录:', error)
+      }
       
-      // 更新本地用户状态
+      // 连接成功后更新本地用户状态
       if (user.value) {
         user.value.isOnline = true
         user.value.lastSeen = new Date().toISOString()
@@ -58,22 +64,20 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('token', response.token)
       localStorage.setItem('user', JSON.stringify(response.user))
       
-      // 注册后自动设置在线状态
-      await userApi.setOnlineStatus(response.user.id, true)
-      
-      // 更新本地用户状态
-      if (user.value) {
-        user.value.isOnline = true
-        user.value.lastSeen = new Date().toISOString()
-        localStorage.setItem('user', JSON.stringify(user.value))
-      }
-      
-      // 初始化 SignalR 连接
+      // 在线状态由 ChatHub.OnConnectedAsync 在 SignalR 连接建立时自动设置
+      // 注册后立即建立 SignalR 连接
       try {
         const signalrStore = useSignalRStore()
         await signalrStore.initConnection()
       } catch (error) {
-        console.warn('SignalR 连接初始化失败，但不影响注册:', error)
+        console.warn('注册后 SignalR 连接初始化失败，不影响注册:', error)
+      }
+      
+      // 连接成功后更新本地用户状态
+      if (user.value) {
+        user.value.isOnline = true
+        user.value.lastSeen = new Date().toISOString()
+        localStorage.setItem('user', JSON.stringify(user.value))
       }
       
       return response
@@ -96,8 +100,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       if (user.value) {
-        // 设置离线状态
-        await userApi.setOnlineStatus(user.value.id, false)
+        // 在线状态由 SignalR OnDisconnectedAsync 自动处理，无需额外 HTTP 调用
         // 调用后端退出接口
         await authApi.logout(user.value.id)
       }
@@ -143,14 +146,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // 设置在线状态
+  // 设置在线状态（通过 SignalR 通知服务端，服务端会更新数据库并广播给好友）
   const setOnlineStatus = async (isOnline: boolean) => {
     if (!user.value) return
     
     try {
-      await userApi.setOnlineStatus(user.value.id, isOnline)
-      user.value.isOnline = isOnline
-      user.value.lastSeen = new Date().toISOString()
+      const signalrStore = useSignalRStore()
+      const conn = signalrStore.connection
+      if (conn?.state === 'Connected') {
+        await conn.invoke('UpdateOnlineStatus', isOnline)
+        user.value.isOnline = isOnline
+        user.value.lastSeen = new Date().toISOString()
+      }
     } catch (error) {
       // 设置在线状态失败，静默处理
     }

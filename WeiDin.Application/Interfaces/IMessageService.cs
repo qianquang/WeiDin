@@ -16,4 +16,7 @@ public interface IMessageService : IApplicationService
     Task<IEnumerable<MessageDto>> SearchByRelationAsync(Guid relationId, Guid userId, string keyword, int page = 1, int pageSize = 20);
     Task<bool> MarkAsReadAsync(Guid relationId, Guid messageId, Guid userId);
     Task<bool> MarkAsDeliveredAsync(Guid relationId, Guid messageId, Guid userId);
+    
+    /// <summary>批量标记某个关系下所有未读消息为已读（仅标记接收方为当前用户且发送方不是当前用户的消息）。</summary>
+    Task<IReadOnlyList<Guid>> MarkAllAsReadAsync(Guid relationId, Guid userId);
 }

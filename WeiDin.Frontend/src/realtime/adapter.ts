@@ -16,6 +16,7 @@ const HUB_EVENTS = [
   'ReceiveMessage',
   'ReceiveGroupMessage',
   'UserStatusChanged',
+  'FriendsOnlineStatusLoaded',
   'MessageRead',
   'MessageDelivered',
 ] as const
@@ -46,24 +47,12 @@ class SignalRAdapter {
     // 为每个 Hub 事件注册转发器
     HUB_EVENTS.forEach(eventName => {
       const handler = (data: any) => {
-        // #region agent log
-        console.log(`[DEBUG-C] SignalR事件接收: ${eventName}`, data)
-        fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'adapter.ts:49',message:'SignalR事件接收',data:{eventName,hasData:!!data,dataId:data?.id,dataRelationId:data?.relationId,dataSenderId:data?.senderId,dataReceiverId:data?.receiverId,fullData:JSON.stringify(data)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
-        
+        console.log(`[SignalR] 收到事件: ${eventName}`, data)
         realtimeBus.emit(eventName, data)
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'adapter.ts:54',message:'事件总线emit完成',data:{eventName},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
       }
       
       conn.on(eventName, handler)
       this.eventHandlers.set(eventName, handler)
-      
-      // #region agent log
-      console.log(`[DEBUG-C] 已注册SignalR事件监听器: ${eventName}`)
-      // #endregion
     })
 
     console.log('SignalR 适配器已附加，已注册', HUB_EVENTS.length, '个事件')

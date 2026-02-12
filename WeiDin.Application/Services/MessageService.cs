@@ -5,17 +5,23 @@ using WeiDin.Core.Entities;
 using WeiDin.Core.Inputs;
 using WeiDin.Core.Interfaces;
 using Volo.Abp.Application.Services;
+using Volo.Abp.Domain.Repositories;
 
 namespace WeiDin.Application.Services;
 
 public class MessageService : ApplicationService, IMessageService
 {
     private readonly IDynamicMessageRepository _dynamicMessageRepository;
+    private readonly IRepository<User, Guid> _userRepository;
     private readonly IMapper _mapper;
 
-    public MessageService(IDynamicMessageRepository dynamicMessageRepository, IMapper mapper)
+    public MessageService(
+        IDynamicMessageRepository dynamicMessageRepository,
+        IRepository<User, Guid> userRepository,
+        IMapper mapper)
     {
         _dynamicMessageRepository = dynamicMessageRepository;
+        _userRepository = userRepository;
         _mapper = mapper;
     }
 
@@ -42,6 +48,15 @@ public class MessageService : ApplicationService, IMessageService
         var message = await _dynamicMessageRepository.SendMessageAsync(relationId, input, senderId);
         var dto = _mapper.Map<MessageDto>(message);
         dto.RelationId = relationId;
+
+        // 补全发送者信息（SendMessageAsync 返回的 Message 实体没有加载 Sender 导航属性）
+        var sender = await _userRepository.FindAsync(senderId);
+        if (sender != null)
+        {
+            dto.SenderName = sender.Nickname ?? sender.Username;
+            dto.SenderAvatar = sender.Avatar;
+        }
+
         return dto;
     }
 

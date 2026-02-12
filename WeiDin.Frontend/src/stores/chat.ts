@@ -10,6 +10,9 @@ export const useChatStore = defineStore('chat', () => {
   const currentSessionId = ref<string | null>(null)
   const isLoading = ref(false)
 
+  // 缓存早到的在线状态（SignalR 推送可能早于 sessions 创建）
+  const pendingOnlineStatuses = ref<Map<string, boolean>>(new Map())
+
   const signalrStore = useSignalRStore()
   const connection = computed(() => signalrStore.connection)
   const isConnected = computed(() => signalrStore.isConnected)
@@ -33,8 +36,8 @@ export const useChatStore = defineStore('chat', () => {
       isLoading.value = true
       const message = await messageApi.send(messageData)
       addMessage(message)
-      // 注意：后端 MessagesController 在发送消息后会自动通过 SignalR 发送通知
-      // 前端无需再调用 SignalR，直接返回消息即可
+      // 更新侧边栏会话的最后一条消息
+      updateSessionLastMessage(messageData.relationId, message)
       return message
     } catch (error) {
       console.error('发送消息失败:', error)
@@ -45,31 +48,16 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   const addMessage = (message: Message) => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.ts:54',message:'addMessage调用',data:{messageId:message.id,relationId:message.relationId,currentSessionId:currentSessionId.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
-    
     const rid = message.relationId
-    if (!rid) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.ts:57',message:'relationId为空，退出',data:{messageId:message.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
-      return
-    }
+    if (!rid) return
     if (!messages.value.has(rid)) messages.value.set(rid, [])
     const list = messages.value.get(rid)!
     const i = list.findIndex(m => m.id === message.id)
     if (i >= 0) {
       list[i] = message
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.ts:63',message:'消息已更新',data:{messageId:message.id,relationId:rid,listLength:list.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
     } else {
       list.push(message)
       list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'chat.ts:66',message:'消息已添加',data:{messageId:message.id,relationId:rid,listLength:list.length,isCurrentSession:currentSessionId.value===rid},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-      // #endregion
     }
   }
 
@@ -94,6 +82,13 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   const addSession = (session: ChatSession) => {
+    // 如果有缓存的在线状态，自动应用到新 session
+    if (session.type === 'private' && session.friendId) {
+      const cached = pendingOnlineStatuses.value.get(session.friendId)
+      if (cached !== undefined) {
+        session.isOnline = cached
+      }
+    }
     const i = sessions.value.findIndex(s => s.id === session.id)
     if (i >= 0) sessions.value[i] = session
     else sessions.value.unshift(session)
@@ -155,6 +150,24 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  const updateSessionOnlineStatus = (friendId: string, isOnline: boolean) => {
+    // 始终缓存最新状态，以便后续创建的 session 能获取到
+    pendingOnlineStatuses.value.set(friendId, isOnline)
+    // 遍历所有私聊会话，找到与该好友相关的会话并更新在线状态
+    for (const session of sessions.value) {
+      if (session.type === 'private' && session.friendId === friendId) {
+        session.isOnline = isOnline
+      }
+    }
+  }
+
+  const batchUpdateOnlineStatus = (statusList: { userId: string; isOnline: boolean }[]) => {
+    // 批量更新好友在线状态（用于连接时一次性设置所有好友状态）
+    for (const status of statusList) {
+      updateSessionOnlineStatus(status.userId, status.isOnline)
+    }
+  }
+
   return {
     messages,
     sessions,
@@ -172,6 +185,8 @@ export const useChatStore = defineStore('chat', () => {
     addSession,
     removeSession,
     updateSessionLastMessage,
+    updateSessionOnlineStatus,
+    batchUpdateOnlineStatus,
     markAsRead,
     searchByRelation,
   }

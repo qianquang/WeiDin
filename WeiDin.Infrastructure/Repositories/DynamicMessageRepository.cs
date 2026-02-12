@@ -212,6 +212,81 @@ VALUES ('{newId}','{messageId}','{userId}',N'{statusEsc}','{now:O}')",
     public Task<bool> MarkAsDeliveredAsync(Guid relationId, Guid messageId, Guid userId, CancellationToken cancellationToken = default)
         => UpdateMessageStatusAsync(relationId, messageId, userId, "Delivered", cancellationToken);
 
+    public async Task<IReadOnlyList<Guid>> MarkAllAsReadAsync(Guid relationId, Guid userId, CancellationToken cancellationToken = default)
+    {
+        await _tables.EnsureConversationTablesAsync(relationId, cancellationToken);
+        var msgT = _tables.GetTableName("Message", relationId);
+        var stT = _tables.GetTableName("MessageStatus", relationId);
+        var statusEsc = EscapeLiteral("Read");
+        var now = DateTime.UtcNow;
+
+        var conn = _db.Database.GetDbConnection();
+        await _db.Database.OpenConnectionAsync(cancellationToken);
+        try
+        {
+            // 1. 查询所有接收方是当前用户且发送方不是当前用户的消息（未删除）
+            await using var queryCmd = conn.CreateCommand();
+            queryCmd!.CommandText = $@"SELECT [Id], [SenderId] FROM [dbo].[{Escape(msgT)}] 
+WHERE [IsDeleted] = 0 AND [ReceiverId] = '{userId}' AND [SenderId] <> '{userId}'";
+            
+            var unreadMessageIds = new List<Guid>();
+            var senderIds = new HashSet<Guid>();
+            
+            await using var reader = await queryCmd.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                var msgId = reader.GetGuid(0);
+                var senderId = reader.GetGuid(1);
+                unreadMessageIds.Add(msgId);
+                senderIds.Add(senderId);
+            }
+            await reader.CloseAsync();
+
+            if (unreadMessageIds.Count == 0)
+                return Array.Empty<Guid>();
+
+            // 2. 批量更新或插入 MessageStatus 记录
+            var markedMessageIds = new List<Guid>();
+            
+            foreach (var messageId in unreadMessageIds)
+            {
+                // 检查是否已有状态记录
+                await using var checkCmd = conn.CreateCommand();
+                checkCmd!.CommandText = $@"SELECT [Id] FROM [dbo].[{Escape(stT)}] 
+WHERE [MessageId] = '{messageId}' AND [UserId] = '{userId}'";
+                
+                await using var checkReader = await checkCmd.ExecuteReaderAsync(cancellationToken);
+                if (await checkReader.ReadAsync(cancellationToken))
+                {
+                    var statusId = checkReader.GetGuid(0);
+                    await checkReader.CloseAsync();
+                    // 更新现有记录
+                    await _db.Database.ExecuteSqlRawAsync(
+                        $@"UPDATE [dbo].[{Escape(stT)}] SET [Status] = N'{statusEsc}' WHERE [Id] = '{statusId}'",
+                        cancellationToken);
+                }
+                else
+                {
+                    await checkReader.CloseAsync();
+                    // 插入新记录
+                    var newStatusId = Guid.NewGuid();
+                    await _db.Database.ExecuteSqlRawAsync(
+                        $@"INSERT INTO [dbo].[{Escape(stT)}] ([Id],[MessageId],[UserId],[Status],[CreatedAt])
+VALUES ('{newStatusId}','{messageId}','{userId}',N'{statusEsc}','{now:O}')",
+                        cancellationToken);
+                }
+                
+                markedMessageIds.Add(messageId);
+            }
+
+            return markedMessageIds;
+        }
+        finally
+        {
+            await _db.Database.CloseConnectionAsync();
+        }
+    }
+
     private async Task LoadAttachmentsAndStatusesAsync(Guid relationId, Message msg, CancellationToken ct)
     {
         var atT = _tables.GetTableName("MessageAttachment", relationId);

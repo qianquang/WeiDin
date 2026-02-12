@@ -79,7 +79,7 @@
           </el-avatar>
           <div class="chat-info">
             <div class="chat-name">{{ session.name }}</div>
-            <div class="last-message">{{ session.lastMessage?.content || '暂无消息' }}</div>
+            <div class="last-message">{{ getLastMessagePreview(session) }}</div>
           </div>
           <div class="chat-meta">
             <div class="time">{{ formatTime(session.lastMessage?.createdAt || '') }}</div>
@@ -113,9 +113,10 @@
             </div>
           </div>
           <div class="chat-actions">
-            <el-button type="text" :icon="Phone" />
-            <el-button type="text" :icon="VideoCamera" />
-            <el-button type="text" :icon="MoreFilled" />
+            <div v-if="currentSession?.type === 'private'" class="online-status-indicator">
+              <span class="status-dot" :class="{ online: currentSession?.isOnline }"></span>
+              <span class="status-text">{{ currentSession?.isOnline ? '在线' : '离线' }}</span>
+            </div>
           </div>
         </div>
 
@@ -205,8 +206,6 @@ import { ElMessage } from 'element-plus'
 import {
   MoreFilled,
   Search,
-  Phone,
-  VideoCamera,
   Picture,
   Paperclip,
   Microphone,
@@ -219,7 +218,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useFriendshipStore } from '@/stores/friendship'
 import { useSignalRStore } from '@/stores/signalr'
-import { groupApi } from '@/api'
+import { groupApi, messageApi } from '@/api'
 import type { CreateGroupDto, ChatSession, Friendship } from '@/types'
 import dayjs from 'dayjs'
 
@@ -257,11 +256,10 @@ const filteredSessions = computed(() => {
 const currentSession = computed(() => chatStore.currentSession)
 const currentMessages = computed(() => chatStore.currentMessages)
 
-// #region agent log
-watch(currentMessages, (newMessages, oldMessages) => {
-  fetch('http://127.0.0.1:7242/ingest/0aef303c-291e-44b6-87be-fbb7c9436476',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Chat.vue:258',message:'currentMessages变化',data:{newLength:newMessages.length,oldLength:oldMessages?.length||0,currentSessionId:currentSessionId.value},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+// 当消息列表变化时自动滚动到底部（接收到新消息或发送消息后）
+watch(currentMessages, () => {
+  nextTick(() => scrollToBottom())
 }, { deep: true })
-// #endregion
 
 function selectSession(session: ChatSession) {
   currentSessionId.value = session.id
@@ -297,7 +295,8 @@ async function ensureSessionsAndSelectFromQuery() {
       type: 'private',
       name: f.friendName || '好友',
       avatar: f.friendAvatar,
-      unreadCount: 0
+      unreadCount: 0,
+      friendId: f.friendId
     })
   }
   for (const g of groups) {
@@ -311,6 +310,21 @@ async function ensureSessionsAndSelectFromQuery() {
     })
   }
   sessions.forEach(s => chatStore.addSession(s))
+
+  // 为每个会话加载最新一条消息，用于侧边栏显示
+  // 好友在线状态由 SignalR 连接时通过 FriendsOnlineStatusLoaded 事件推送，无需逐个 HTTP 查询
+  await Promise.all(
+    sessions.map(async (s) => {
+      try {
+        const msgs = await messageApi.getByRelationId(s.relationId, { page: 1, pageSize: 1 })
+        if (msgs.length > 0) {
+          chatStore.updateSessionLastMessage(s.relationId, msgs[0])
+        }
+      } catch {
+        // 忽略单个会话加载失败
+      }
+    })
+  )
 
   const friendId = route.query.friend as string | undefined
   const groupId = route.query.group as string | undefined
@@ -372,14 +386,44 @@ const scrollToBottom = () => {
   }
 }
 
+const getLastMessagePreview = (session: ChatSession) => {
+  const msg = session.lastMessage
+  if (!msg) return '暂无消息'
+  switch (msg.messageType) {
+    case 'Image': return '[图片]'
+    case 'Video': return '[视频]'
+    case 'File': return '[文件]'
+    default: {
+      const text = msg.content || ''
+      return text.length > 20 ? text.slice(0, 20) + '...' : text
+    }
+  }
+}
+
 const formatTime = (time: string) => {
-  return dayjs(time).format('HH:mm')
+  if (!time) return ''
+  const d = dayjs(time)
+  if (!d.isValid()) return ''
+  const now = dayjs()
+  if (d.isSame(now, 'day')) return d.format('HH:mm')
+  if (d.isSame(now.subtract(1, 'day'), 'day')) return '昨天'
+  if (d.isSame(now, 'year')) return d.format('MM/DD')
+  return d.format('YYYY/MM/DD')
 }
 
 const handleOnlineStatusChange = async (v: string | number | boolean) => {
   const isOnline = v === true
   try {
-    await authStore.setOnlineStatus(isOnline)
+    // 通过 SignalR 通知服务端，服务端会更新数据库并广播给好友
+    const conn = signalrStore.connection
+    if (conn?.state === 'Connected') {
+      await conn.invoke('UpdateOnlineStatus', isOnline)
+    }
+    // 更新本地状态
+    if (authStore.user) {
+      authStore.user.isOnline = isOnline
+      authStore.user.lastSeen = new Date().toISOString()
+    }
     ElMessage.success(isOnline ? '已设置为在线' : '已设置为离线')
   } catch (error) {
     isOnlineStatus.value = !isOnline
@@ -632,6 +676,38 @@ watch(() => [route.query.friend, route.query.group], () => {
 .chat-actions {
   display: flex;
   gap: 10px;
+  align-items: center;
+}
+
+.online-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: #f5f5f5;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #c0c4cc;
+  transition: background-color 0.3s;
+}
+
+.status-dot.online {
+  background: #67c23a;
+  box-shadow: 0 0 4px rgba(103, 194, 58, 0.5);
+}
+
+.online-status-indicator .status-text {
+  font-size: 13px;
+  color: #999;
+}
+
+.status-dot.online + .status-text {
+  color: #67c23a;
 }
 
 .message-list {

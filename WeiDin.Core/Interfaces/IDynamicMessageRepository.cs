@@ -29,4 +29,7 @@ public interface IDynamicMessageRepository
 
     Task<bool> MarkAsReadAsync(Guid relationId, Guid messageId, Guid userId, CancellationToken cancellationToken = default);
     Task<bool> MarkAsDeliveredAsync(Guid relationId, Guid messageId, Guid userId, CancellationToken cancellationToken = default);
+    
+    /// <summary>批量标记某个关系下所有未读消息为已读（仅标记接收方为当前用户且发送方不是当前用户的消息）。</summary>
+    Task<IReadOnlyList<Guid>> MarkAllAsReadAsync(Guid relationId, Guid userId, CancellationToken cancellationToken = default);
 }

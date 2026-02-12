@@ -241,6 +241,8 @@ export interface ChatSession {
   unreadCount: number
   isOnline?: boolean
   lastSeen?: string
+  /** 私聊时对方的用户 ID，用于关联在线状态 */
+  friendId?: string
 }
 
 // SignalR消息类型（后端发送的是完整的 MessageDto，与 Message 类型匹配）
@@ -252,6 +254,12 @@ export interface UserStatusChange {
   userId: string
   isOnline: boolean
   timestamp: string
+}
+
+export interface FriendOnlineStatus {
+  userId: string
+  isOnline: boolean
+  lastSeen: string
 }
 
 export interface MessageReadNotification {

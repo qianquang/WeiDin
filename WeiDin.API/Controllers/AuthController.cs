@@ -89,8 +89,7 @@ public class AuthController : AbpControllerBase
         if (user == null)
             return Unauthorized(new { message = "用户不存在" });
 
-        // 更新在线状态
-        await _userService.SetOnlineStatusAsync(user.Id, true);
+        // 在线状态由 ChatHub.OnConnectedAsync 在 SignalR 连接建立时自动设置，无需在此处理
 
         var token = GenerateJwtToken(user);
 
@@ -104,7 +103,7 @@ public class AuthController : AbpControllerBase
     [HttpPost("logout")]
     public async Task<ActionResult> Logout([FromBody] Guid userId)
     {
-        await _userService.SetOnlineStatusAsync(userId, false);
+        // 在线状态由 ChatHub.OnDisconnectedAsync 在 SignalR 断开时自动设置为离线，无需在此处理
         return Ok("退出成功");
     }
 

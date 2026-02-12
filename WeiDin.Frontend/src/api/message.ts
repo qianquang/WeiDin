@@ -32,6 +32,10 @@ export const messageApi = {
     return request.post(`/messages/relation/${relationId}/${id}/read`)
   },
 
+  markAllAsRead: (relationId: string): Promise<string[]> => {
+    return request.post(`/messages/relation/${relationId}/read-all`)
+  },
+
   markAsDelivered: (relationId: string, id: string): Promise<void> => {
     return request.post(`/messages/relation/${relationId}/${id}/delivered`)
   },
