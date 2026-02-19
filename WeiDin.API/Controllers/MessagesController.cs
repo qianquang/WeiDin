@@ -158,6 +158,39 @@ public class MessagesController : AbpControllerBase
         return Ok("已标记为已读");
     }
 
+    /// <summary>批量标记已读。</summary>
+    [HttpPost("relation/{relationId:guid}/read-all")]
+    public async Task<ActionResult<IEnumerable<Guid>>> MarkAllAsRead(Guid relationId)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+            return Unauthorized("无效的用户身份");
+
+        try
+        {
+            var markedMessageIds = await _messageService.MarkAllAsReadAsync(relationId, userId);
+            _logger.LogInformation("用户 {UserId} 批量标记会话 {RelationId} 的 {Count} 条消息为已读", userId, relationId, markedMessageIds.Count);
+            return Ok(markedMessageIds);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "用户 {UserId} 批量标记会话 {RelationId} 的消息为已读时发生错误", userId, relationId);
+            throw;
+        }
+    }
+
+    /// <summary>获取未读消息数量。</summary>
+    [HttpGet("relation/{relationId:guid}/unread-count")]
+    public async Task<ActionResult<int>> GetUnreadCount(Guid relationId)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+            return Unauthorized("无效的用户身份");
+
+        var count = await _messageService.GetUnreadCountAsync(relationId, userId);
+        return Ok(count);
+    }
+
     /// <summary>标记已送达。</summary>
     [HttpPost("relation/{relationId:guid}/{id:guid}/delivered")]
     public async Task<ActionResult> MarkAsDelivered(Guid relationId, Guid id)

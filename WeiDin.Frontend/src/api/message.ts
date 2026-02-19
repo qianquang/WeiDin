@@ -36,6 +36,10 @@ export const messageApi = {
     return request.post(`/messages/relation/${relationId}/read-all`)
   },
 
+  getUnreadCount: (relationId: string): Promise<number> => {
+    return request.get(`/messages/relation/${relationId}/unread-count`)
+  },
+
   markAsDelivered: (relationId: string, id: string): Promise<void> => {
     return request.post(`/messages/relation/${relationId}/${id}/delivered`)
   },

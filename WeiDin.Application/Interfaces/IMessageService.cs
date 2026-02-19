@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Volo.Abp.Application.Services;
 using WeiDin.Application.DTOs;
 
@@ -19,4 +20,7 @@ public interface IMessageService : IApplicationService
     
     /// <summary>批量标记某个关系下所有未读消息为已读（仅标记接收方为当前用户且发送方不是当前用户的消息）。</summary>
     Task<IReadOnlyList<Guid>> MarkAllAsReadAsync(Guid relationId, Guid userId);
+    
+    /// <summary>获取某个关系下未读消息数量（仅统计接收方为当前用户且发送方不是当前用户的消息）。</summary>
+    Task<int> GetUnreadCountAsync(Guid relationId, Guid userId);
 }

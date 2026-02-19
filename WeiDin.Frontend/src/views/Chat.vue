@@ -261,9 +261,9 @@ watch(currentMessages, () => {
   nextTick(() => scrollToBottom())
 }, { deep: true })
 
-function selectSession(session: ChatSession) {
+async function selectSession(session: ChatSession) {
   currentSessionId.value = session.id
-  chatStore.setCurrentSession(session.id)
+  await chatStore.setCurrentSession(session.id)
   chatStore.loadMessages(session.relationId)
 }
 
@@ -311,14 +311,23 @@ async function ensureSessionsAndSelectFromQuery() {
   }
   sessions.forEach(s => chatStore.addSession(s))
 
-  // 为每个会话加载最新一条消息，用于侧边栏显示
+  // 为每个会话加载最新一条消息和未读数量，用于侧边栏显示
   // 好友在线状态由 SignalR 连接时通过 FriendsOnlineStatusLoaded 事件推送，无需逐个 HTTP 查询
+  // 注意：私聊和群聊都支持未读红点功能
   await Promise.all(
     sessions.map(async (s) => {
       try {
+        const session = chatStore.sessions.find(ss => ss.id === s.id)
+        if (!session) return
+        
+        // 加载未读消息数量（私聊和群聊都支持，必须在更新最后消息之前，避免被 updateSessionLastMessage 错误增加）
+        const unreadCount = await messageApi.getUnreadCount(s.relationId)
+        session.unreadCount = unreadCount
+        
+        // 加载最新一条消息（直接设置，不使用 updateSessionLastMessage，避免错误增加未读计数）
         const msgs = await messageApi.getByRelationId(s.relationId, { page: 1, pageSize: 1 })
         if (msgs.length > 0) {
-          chatStore.updateSessionLastMessage(s.relationId, msgs[0])
+          session.lastMessage = msgs[0]
         }
       } catch {
         // 忽略单个会话加载失败
@@ -331,7 +340,7 @@ async function ensureSessionsAndSelectFromQuery() {
   if (friendId) {
     const fr = friends.find((f: Friendship) => f.friendId === friendId)
     if (fr?.conversationId) {
-      chatStore.setCurrentSession(fr.conversationId)
+      await chatStore.setCurrentSession(fr.conversationId)
       currentSessionId.value = fr.conversationId
       await chatStore.loadMessages(fr.conversationId)
     } else {
@@ -340,7 +349,7 @@ async function ensureSessionsAndSelectFromQuery() {
   } else if (groupId) {
     const exists = sessions.some(s => s.id === groupId)
     if (exists) {
-      chatStore.setCurrentSession(groupId)
+      await chatStore.setCurrentSession(groupId)
       currentSessionId.value = groupId
       await chatStore.loadMessages(groupId)
     } else {
@@ -354,7 +363,7 @@ async function ensureSessionsAndSelectFromQuery() {
           avatar: g.avatar,
           unreadCount: 0
         })
-        chatStore.setCurrentSession(g.id)
+        await chatStore.setCurrentSession(g.id)
         currentSessionId.value = g.id
         await chatStore.loadMessages(g.id)
       }

@@ -103,7 +103,13 @@ public class WeiDinDbContext : AbpDbContext<WeiDinDbContext>
         modelBuilder.Entity<GroupMember>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasIndex(e => new { e.GroupId, e.UserId }).IsUnique();
+            // 只对 IsActive=true 的记录创建唯一索引，允许 IsActive=false 的多条申请记录存在
+            entity.HasIndex(e => new { e.GroupId, e.UserId })
+                .IsUnique()
+                .HasFilter("[IsActive] = 1");
+            entity.HasIndex(e => e.GroupId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.JoinedAt);
 
             entity.HasOne(e => e.Group)
                 .WithMany(e => e.Members)

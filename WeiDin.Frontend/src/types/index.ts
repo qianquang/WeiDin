@@ -119,6 +119,7 @@ export interface Group {
 export interface GroupMember {
   id: string
   groupId: string
+  groupName?: string  // 用于申请列表显示群组名称
   userId: string
   userName: string
   userAvatar?: string
@@ -272,4 +273,54 @@ export interface MessageDeliveredNotification {
   messageId: string
   deliveredTo: string
   timestamp: string
+}
+
+// 群组相关 SignalR 事件类型
+export interface GroupCreatedNotification extends Group {}
+
+export interface GroupUpdatedNotification extends Group {}
+
+export interface GroupDeletedNotification {
+  groupId: string
+}
+
+export interface MemberJoinedNotification {
+  GroupId: string
+  UserId: string
+}
+
+export interface MemberLeftNotification {
+  GroupId: string
+  UserId: string
+}
+
+export interface MemberAddedNotification {
+  GroupId: string
+  UserId: string
+}
+
+export interface MemberRemovedNotification {
+  GroupId: string
+  UserId: string
+}
+
+export interface MemberUpdatedNotification {
+  GroupId: string
+  UserId: string
+  UpdateDto: UpdateGroupMemberDto
+}
+
+// 群组申请相关 SignalR 事件类型（使用 GroupMember）
+export interface GroupRequestReceivedNotification extends GroupMember {}
+
+export interface GroupRequestAcceptedNotification {
+  RequestId: string
+  GroupId: string
+  GroupName?: string
+}
+
+export interface GroupRequestRejectedNotification {
+  RequestId: string
+  GroupId: string
+  GroupName?: string
 }

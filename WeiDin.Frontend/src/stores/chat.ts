@@ -75,10 +75,21 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  const setCurrentSession = (sessionId: string) => {
+  const setCurrentSession = async (sessionId: string) => {
     currentSessionId.value = sessionId
     const s = sessions.value.find(x => x.id === sessionId)
-    if (s) s.unreadCount = 0
+    if (s) {
+      s.unreadCount = 0
+      // 自动标记该会话的所有消息为已读（私聊和群聊都支持）
+      if (s.relationId) {
+        try {
+          await markAllAsRead(s.relationId)
+        } catch (error) {
+          // 静默处理错误，避免影响会话切换
+          console.warn('自动标记已读失败:', error)
+        }
+      }
+    }
   }
 
   const addSession = (session: ChatSession) => {
@@ -105,7 +116,7 @@ export const useChatStore = defineStore('chat', () => {
     const session = sessions.value.find(s => s.relationId === relationId)
     if (session) {
       session.lastMessage = message
-      // 如果当前不在查看该会话，增加未读计数
+      // 如果当前不在查看该会话，增加未读计数（私聊和群聊都支持）
       if (currentSessionId.value !== session.id) {
         session.unreadCount = (session.unreadCount || 0) + 1
       }
@@ -135,6 +146,36 @@ export const useChatStore = defineStore('chat', () => {
       }
     } catch (error) {
       console.error('标记已读失败:', error)
+    }
+  }
+
+  const markAllAsRead = async (relationId: string) => {
+    try {
+      // 调用后端API批量标记所有消息为已读
+      const markedMessageIds = await messageApi.markAllAsRead(relationId)
+      
+      // 通过 SignalR 通知所有相关消息的发送方
+      const messageList = messages.value.get(relationId)
+      if (!messageList || markedMessageIds.length === 0) return
+      
+      const conn = connection.value
+      if (conn?.state === 'Connected') {
+        // 遍历已标记的消息ID，找到对应的消息并通知发送方
+        for (const messageId of markedMessageIds) {
+          const message = messageList.find(m => m.id === messageId)
+          if (message?.senderId) {
+            try {
+              // 后端 ChatHub.MarkMessageAsRead 期望参数: (messageId, targetUserId)
+              // targetUserId 应该是消息的发送方，因为我们要通知发送方消息已被接收方读取
+              await conn.invoke('MarkMessageAsRead', messageId, message.senderId)
+            } catch (e) {
+              console.warn(`SignalR MarkMessageAsRead failed for message ${messageId}:`, e)
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('批量标记已读失败:', error)
     }
   }
 
@@ -188,6 +229,7 @@ export const useChatStore = defineStore('chat', () => {
     updateSessionOnlineStatus,
     batchUpdateOnlineStatus,
     markAsRead,
+    markAllAsRead,
     searchByRelation,
   }
 })

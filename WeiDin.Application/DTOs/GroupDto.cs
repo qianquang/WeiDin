@@ -39,6 +39,7 @@ public class GroupMemberDto
 {
     public Guid Id { get; set; }
     public Guid GroupId { get; set; }
+    public string? GroupName { get; set; }  // 用于申请列表显示群组名称
     public Guid UserId { get; set; }
     public string UserName { get; set; } = string.Empty;
     public string? UserAvatar { get; set; }
@@ -59,6 +60,4 @@ public class UpdateGroupMemberDto
     public string? Nickname { get; set; }
     public string? Role { get; set; }
 }
-
-
 

@@ -20,6 +20,13 @@ public interface IGroupService : IApplicationService
     Task<bool> IsMemberAsync(Guid groupId, Guid userId);
     Task<bool> IsOwnerAsync(Guid groupId, Guid userId);
     Task<bool> IsAdminAsync(Guid groupId, Guid userId);
+    
+    // 群组申请相关方法（使用 GroupMember 的 IsActive 字段）
+    Task<GroupMemberDto> RequestJoinGroupAsync(Guid groupId, Guid userId);
+    Task<GroupMemberDto> AcceptGroupRequestAsync(Guid memberId, Guid ownerId);
+    Task<GroupMemberDto?> RejectGroupRequestAsync(Guid memberId, Guid ownerId);
+    Task<IEnumerable<GroupMemberDto>> GetPendingRequestsAsync(Guid groupId, Guid ownerId);
+    Task<IEnumerable<GroupMemberDto>> GetSentRequestsAsync(Guid userId);
 }
 
 

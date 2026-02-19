@@ -22,7 +22,7 @@ public class GroupMember : Entity<Guid>
     
     public DateTime? LeftAt { get; set; }
     
-    public bool IsActive { get; set; } = true;
+    public bool IsActive { get; set; } = true;  // false表示待处理的申请，true表示已加入的成员
     
     // 导航属性
     public virtual Group Group { get; set; } = null!;

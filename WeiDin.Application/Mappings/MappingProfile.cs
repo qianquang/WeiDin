@@ -77,8 +77,9 @@ public class MappingProfile : Profile
 
         // GroupMember mappings
         CreateMap<GroupMember, GroupMemberDto>()
-            .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User.Username))
-            .ForMember(dest => dest.UserAvatar, opt => opt.MapFrom(src => src.User.Avatar));
+            .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User != null ? src.User.Username : ""))
+            .ForMember(dest => dest.UserAvatar, opt => opt.MapFrom(src => src.User != null ? src.User.Avatar : null))
+            .ForMember(dest => dest.GroupName, opt => opt.MapFrom(src => src.Group != null ? src.Group.Name : null));
 
         CreateMap<AddGroupMemberDto, GroupMember>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())

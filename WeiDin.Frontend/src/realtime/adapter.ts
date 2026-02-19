@@ -19,6 +19,18 @@ const HUB_EVENTS = [
   'FriendsOnlineStatusLoaded',
   'MessageRead',
   'MessageDelivered',
+  'GroupCreated',
+  'GroupUpdated',
+  'GroupDeleted',
+  'MemberJoined',
+  'MemberLeft',
+  'MemberAdded',
+  'MemberRemoved',
+  'MemberUpdated',
+  // 群组申请相关事件
+  'GroupRequestReceived',
+  'GroupRequestAccepted',
+  'GroupRequestRejected',
 ] as const
 
 type HubEvent = typeof HUB_EVENTS[number]

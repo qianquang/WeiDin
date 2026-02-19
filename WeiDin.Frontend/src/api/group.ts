@@ -6,7 +6,7 @@ import type {
   GroupMember, 
   AddGroupMemberDto, 
   UpdateGroupMemberDto,
-  PaginationParams 
+  PaginationParams
 } from '@/types'
 
 // 群组相关API
@@ -24,6 +24,11 @@ export const groupApi = {
   // 获取用户群组
   getUserGroups: (userId: string): Promise<Group[]> => {
     return request.get(`/groups/user/${userId}`)
+  },
+
+  // 获取当前用户的群组
+  getMyGroups: (): Promise<Group[]> => {
+    return request.get('/groups/my-groups')
   },
 
   // 创建群组
@@ -69,5 +74,32 @@ export const groupApi = {
   // 获取群成员列表
   getGroupMembers: (id: string): Promise<GroupMember[]> => {
     return request.get(`/groups/${id}/members`)
+  },
+
+  // ========== 群组申请相关 API（使用 GroupMember，IsActive=false 表示待处理申请） ==========
+
+  // 申请加入群组
+  requestJoinGroup: (groupId: string): Promise<GroupMember> => {
+    return request.post(`/groups/${groupId}/request`)
+  },
+
+  // 接受群组申请（仅群主）
+  acceptGroupRequest: (memberId: string): Promise<GroupMember> => {
+    return request.post(`/groups/members/${memberId}/accept`)
+  },
+
+  // 拒绝群组申请（仅群主）
+  rejectGroupRequest: (memberId: string): Promise<void> => {
+    return request.post(`/groups/members/${memberId}/reject`)
+  },
+
+  // 获取群组的待处理申请（仅群主）
+  getPendingRequests: (groupId: string): Promise<GroupMember[]> => {
+    return request.get(`/groups/${groupId}/requests/pending`)
+  },
+
+  // 获取当前用户已发送的群组申请
+  getSentRequests: (): Promise<GroupMember[]> => {
+    return request.get('/groups/requests/sent')
   },
 }

@@ -1,5 +1,6 @@
 using System.Reflection;
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using WeiDin.Application.DTOs;
 using WeiDin.Application.Interfaces;
 using WeiDin.Core.Entities;
@@ -33,12 +34,16 @@ public class GroupService : ApplicationService, IGroupService
 
     public async Task<GroupDto?> GetByIdAsync(Guid id)
     {
-        var group = await _groupRepository.FindAsync(id);
+        var queryable = await _groupRepository.GetQueryableAsync();
+        var group = await queryable
+            .Include(g => g.Owner)
+            .Include(g => g.Members)
+                .ThenInclude(m => m.User)
+            .FirstOrDefaultAsync(g => g.Id == id);
+
         if (group == null)
             return null;
 
-        // 加载相关数据
-        await LoadGroupRelatedData(group);
         return _mapper.Map<GroupDto>(group);
     }
 
@@ -48,32 +53,35 @@ public class GroupService : ApplicationService, IGroupService
             gm.UserId == userId && gm.IsActive);
         
         var groupIds = groupMembers.Select(gm => gm.GroupId).ToList();
-        var groups = await _groupRepository.GetListAsync(g => groupIds.Contains(g.Id));
+        
+        if (!groupIds.Any())
+            return Enumerable.Empty<GroupDto>();
 
-        foreach (var group in groups)
-        {
-            await LoadGroupRelatedData(group);
-        }
+        var queryable = await _groupRepository.GetQueryableAsync();
+        var groups = await queryable
+            .Include(g => g.Owner)
+            .Include(g => g.Members)
+                .ThenInclude(m => m.User)
+            .Where(g => groupIds.Contains(g.Id) && g.IsActive)
+            .ToListAsync();
 
         return _mapper.Map<IEnumerable<GroupDto>>(groups);
     }
 
     public async Task<IEnumerable<GroupDto>> GetAllAsync(int page = 1, int pageSize = 20)
     {
-        var groups = await _groupRepository.GetListAsync(g => g.IsActive);
-        
-        var pagedGroups = groups
+        var queryable = await _groupRepository.GetQueryableAsync();
+        var groups = await queryable
+            .Include(g => g.Owner)
+            .Include(g => g.Members)
+                .ThenInclude(m => m.User)
+            .Where(g => g.IsActive)
             .OrderByDescending(g => g.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToList();
+            .ToListAsync();
 
-        foreach (var group in pagedGroups)
-        {
-            await LoadGroupRelatedData(group);
-        }
-
-        return _mapper.Map<IEnumerable<GroupDto>>(pagedGroups);
+        return _mapper.Map<IEnumerable<GroupDto>>(groups);
     }
 
     public async Task<GroupDto> CreateAsync(CreateGroupDto createGroupDto, Guid ownerId)
@@ -114,8 +122,15 @@ public class GroupService : ApplicationService, IGroupService
         };
         await _groupMemberRepository.InsertAsync(ownerMember, autoSave: true);
 
-        await LoadGroupRelatedData(group);
-        return _mapper.Map<GroupDto>(group);
+        // 重新加载群组及其相关数据
+        var queryable = await _groupRepository.GetQueryableAsync();
+        var loadedGroup = await queryable
+            .Include(g => g.Owner)
+            .Include(g => g.Members)
+                .ThenInclude(m => m.User)
+            .FirstOrDefaultAsync(g => g.Id == group.Id);
+
+        return _mapper.Map<GroupDto>(loadedGroup!);
     }
 
     public async Task<GroupDto> UpdateAsync(Guid id, UpdateGroupDto updateDto, Guid userId)
@@ -142,8 +157,15 @@ public class GroupService : ApplicationService, IGroupService
 
         await _groupRepository.UpdateAsync(group, autoSave: true);
 
-        await LoadGroupRelatedData(group);
-        return _mapper.Map<GroupDto>(group);
+        // 重新加载群组及其相关数据
+        var queryable = await _groupRepository.GetQueryableAsync();
+        var loadedGroup = await queryable
+            .Include(g => g.Owner)
+            .Include(g => g.Members)
+                .ThenInclude(m => m.User)
+            .FirstOrDefaultAsync(g => g.Id == id);
+
+        return _mapper.Map<GroupDto>(loadedGroup!);
     }
 
     public async Task<bool> DeleteAsync(Guid id, Guid userId)
@@ -298,8 +320,11 @@ public class GroupService : ApplicationService, IGroupService
 
     public async Task<IEnumerable<GroupMemberDto>> GetMembersAsync(Guid groupId)
     {
-        var members = await _groupMemberRepository.GetListAsync(gm => 
-            gm.GroupId == groupId && gm.IsActive);
+        var queryable = await _groupMemberRepository.GetQueryableAsync();
+        var members = await queryable
+            .Include(m => m.User)
+            .Where(gm => gm.GroupId == groupId && gm.IsActive)
+            .ToListAsync();
 
         return _mapper.Map<IEnumerable<GroupMemberDto>>(members);
     }
@@ -323,11 +348,141 @@ public class GroupService : ApplicationService, IGroupService
             (gm.Role == "Owner" || gm.Role == "Admin") && gm.IsActive);
     }
 
-    private Task LoadGroupRelatedData(Group group)
+    // ========== 群组申请相关方法（使用 GroupMember 的 IsActive 字段） ==========
+
+    public async Task<GroupMemberDto> RequestJoinGroupAsync(Guid groupId, Guid userId)
     {
-        // 这里可以添加预加载相关数据的逻辑
-        // 由于我们使用的是简单的Repository模式，这里暂时不实现
-        return Task.CompletedTask;
+        var group = await _groupRepository.FindAsync(groupId);
+        if (group == null || !group.IsActive)
+            throw new InvalidOperationException("群组不存在或已解散");
+
+        // 检查是否已经是成员（IsActive=true）
+        if (await IsMemberAsync(groupId, userId))
+            throw new InvalidOperationException("您已经是该群组的成员");
+
+        // 检查是否已有待处理的申请（IsActive=false）
+        var existingRequest = await _groupMemberRepository.FirstOrDefaultAsync(gm =>
+            gm.GroupId == groupId && gm.UserId == userId && !gm.IsActive);
+        if (existingRequest != null)
+            throw new InvalidOperationException("您已提交过申请，请等待处理");
+
+        // 检查群组是否已满
+        var currentMemberCount = await _groupMemberRepository.CountAsync(gm =>
+            gm.GroupId == groupId && gm.IsActive);
+        if (currentMemberCount >= group.MaxMembers)
+            throw new InvalidOperationException("群组已满，无法申请加入");
+
+        // 创建群组申请（IsActive=false）
+        var member = new GroupMember
+        {
+            GroupId = groupId,
+            UserId = userId,
+            Role = "Member", // 申请时先设置为 Member，接受后保持
+            IsActive = false, // 申请状态，等待群主同意
+            JoinedAt = DateTime.UtcNow
+        };
+
+        await _groupMemberRepository.InsertAsync(member, autoSave: true);
+
+        // 重新加载以包含导航属性
+        var queryable = await _groupMemberRepository.GetQueryableAsync();
+        var loadedMember = await queryable
+            .Include(gm => gm.Group)
+            .Include(gm => gm.User)
+            .FirstOrDefaultAsync(gm => gm.Id == member.Id);
+
+        return _mapper.Map<GroupMemberDto>(loadedMember ?? member);
+    }
+
+    public async Task<GroupMemberDto> AcceptGroupRequestAsync(Guid memberId, Guid ownerId)
+    {
+        var queryable = await _groupMemberRepository.GetQueryableAsync();
+        var member = await queryable
+            .Include(gm => gm.Group)
+            .Include(gm => gm.User)
+            .FirstOrDefaultAsync(gm => gm.Id == memberId && !gm.IsActive);
+
+        if (member == null)
+            throw new InvalidOperationException("申请不存在或已被处理");
+
+        // 验证是否为群主
+        if (member.Group.OwnerId != ownerId)
+            throw new UnauthorizedAccessException("只有群主可以接受申请");
+
+        // 检查群组是否已满
+        var currentMemberCount = await _groupMemberRepository.CountAsync(gm =>
+            gm.GroupId == member.GroupId && gm.IsActive);
+        if (currentMemberCount >= member.Group.MaxMembers)
+            throw new InvalidOperationException("群组已满，无法接受申请");
+
+        // 检查是否已经是成员
+        var existingMember = await _groupMemberRepository.FirstOrDefaultAsync(gm =>
+            gm.GroupId == member.GroupId && gm.UserId == member.UserId && gm.IsActive);
+        if (existingMember != null)
+        {
+            // 如果已经是成员，删除申请记录
+            await _groupMemberRepository.DeleteAsync(member);
+            throw new InvalidOperationException("用户已经是群组成员");
+        }
+
+        // 激活成员（接受申请）
+        member.IsActive = true;
+        member.Role = "Member";
+        member.JoinedAt = DateTime.UtcNow;
+        await _groupMemberRepository.UpdateAsync(member, autoSave: true);
+
+        return _mapper.Map<GroupMemberDto>(member);
+    }
+
+    public async Task<GroupMemberDto?> RejectGroupRequestAsync(Guid memberId, Guid ownerId)
+    {
+        var queryable = await _groupMemberRepository.GetQueryableAsync();
+        var member = await queryable
+            .Include(gm => gm.Group)
+            .Include(gm => gm.User)
+            .FirstOrDefaultAsync(gm => gm.Id == memberId && !gm.IsActive);
+
+        if (member == null)
+            return null;
+
+        // 验证是否为群主
+        if (member.Group.OwnerId != ownerId)
+            return null;
+
+        // 删除申请记录（拒绝申请）
+        await _groupMemberRepository.DeleteAsync(member);
+
+        return _mapper.Map<GroupMemberDto>(member);
+    }
+
+    public async Task<IEnumerable<GroupMemberDto>> GetPendingRequestsAsync(Guid groupId, Guid ownerId)
+    {
+        // 验证是否为群主
+        if (!await IsOwnerAsync(groupId, ownerId))
+            throw new UnauthorizedAccessException("只有群主可以查看待处理申请");
+
+        var queryable = await _groupMemberRepository.GetQueryableAsync();
+        var requests = await queryable
+            .Include(gm => gm.Group)
+            .Include(gm => gm.User)
+            .Where(gm => gm.GroupId == groupId && !gm.IsActive)
+            .OrderByDescending(gm => gm.JoinedAt)
+            .ToListAsync();
+
+        return _mapper.Map<IEnumerable<GroupMemberDto>>(requests);
+    }
+
+    public async Task<IEnumerable<GroupMemberDto>> GetSentRequestsAsync(Guid userId)
+    {
+        var queryable = await _groupMemberRepository.GetQueryableAsync();
+        var requests = await queryable
+            .Include(gm => gm.Group)
+            .Include(gm => gm.User)
+            .Where(gm => gm.UserId == userId && !gm.IsActive)
+            .OrderByDescending(gm => gm.JoinedAt)
+            .ToListAsync();
+
+        return _mapper.Map<IEnumerable<GroupMemberDto>>(requests);
     }
 }
 

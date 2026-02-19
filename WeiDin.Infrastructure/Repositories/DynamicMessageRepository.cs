@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using WeiDin.Core.Entities;
 using WeiDin.Core.Inputs;
 using WeiDin.Core.Interfaces;
@@ -148,6 +149,56 @@ VALUES ('{aid}','{msgId}',N'{fn}',N'{fp}',N'{ft}',{a.FileSize},{thumb},'{now:O}'
         return msg;
     }
 
+    public async Task CreateGroupMessageStatusesAsync(Guid relationId, Guid messageId, Guid senderId, IEnumerable<Guid> memberIds, CancellationToken cancellationToken = default)
+    {
+        await _tables.EnsureConversationTablesAsync(relationId, cancellationToken);
+        var stT = _tables.GetTableName("MessageStatus", relationId);
+        var now = DateTime.UtcNow;
+
+        // 过滤掉发送者，只为其他成员创建状态记录
+        var membersToCreate = memberIds.Where(id => id != senderId).ToList();
+        if (membersToCreate.Count == 0)
+            return;
+
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var conn = _db.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await _db.Database.OpenConnectionAsync(cancellationToken);
+            }
+
+            foreach (var memberId in membersToCreate)
+            {
+                // 检查是否已存在状态记录（避免重复创建）
+                await using var checkCmd = conn.CreateCommand();
+                checkCmd.Transaction = tx.GetDbTransaction();
+                checkCmd.CommandText = $@"SELECT COUNT(*) FROM [dbo].[{Escape(stT)}] 
+WHERE [MessageId] = '{messageId}' AND [UserId] = '{memberId}'";
+                
+                var exists = Convert.ToInt32(await checkCmd.ExecuteScalarAsync(cancellationToken)) > 0;
+                if (!exists)
+                {
+                    // 为每个成员创建状态记录（初始状态为 Sent，表示消息已发送到群组）
+                    var statusId = Guid.NewGuid();
+                    await using var insertCmd = conn.CreateCommand();
+                    insertCmd.Transaction = tx.GetDbTransaction();
+                    insertCmd.CommandText = $@"INSERT INTO [dbo].[{Escape(stT)}] ([Id],[MessageId],[UserId],[Status],[CreatedAt])
+VALUES ('{statusId}','{messageId}','{memberId}',N'Sent','{now:O}')";
+                    await insertCmd.ExecuteNonQueryAsync(cancellationToken);
+                }
+            }
+
+            await tx.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
     public async Task<bool> DeleteMessageAsync(Guid relationId, Guid messageId, Guid userId, CancellationToken cancellationToken = default)
     {
         await _tables.EnsureConversationTablesAsync(relationId, cancellationToken);
@@ -168,41 +219,120 @@ WHERE [Id]='{messageId}' AND [SenderId]='{userId}'",
         var statusEsc = EscapeLiteral(status);
         var now = DateTime.UtcNow;
 
-        var checkSql = $"SELECT COUNT(*) FROM [dbo].[{Escape(msgT)}] WHERE [Id] = '{messageId}'";
-        var conn = _db.Database.GetDbConnection();
-        await _db.Database.OpenConnectionAsync(cancellationToken);
+        // 使用事务确保数据一致性
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
         try
         {
+            var conn = _db.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await _db.Database.OpenConnectionAsync(cancellationToken);
+            }
+
+            // 验证消息是否存在，且当前用户是接收方（私聊）或群组成员（群组消息）
             await using var checkCmd = conn.CreateCommand();
-            checkCmd!.CommandText = checkSql;
-            var messageExists = Convert.ToInt32(await checkCmd.ExecuteScalarAsync(cancellationToken)) > 0;
-            if (!messageExists) return false;
+            checkCmd.Transaction = tx.GetDbTransaction();
+            checkCmd.CommandText = $@"SELECT COUNT(*) FROM [dbo].[{Escape(msgT)}] 
+WHERE [Id] = '{messageId}' 
+  AND [IsDeleted] = 0 
+  AND [SenderId] <> '{userId}'
+  AND (
+    -- 私聊消息：接收方是当前用户
+    ([ReceiverId] = '{userId}' AND [GroupId] IS NULL)
+    OR
+    -- 群组消息：群组ID匹配（通过 relationId 判断，relationId 对于群组消息就是 GroupId）
+    ([GroupId] = '{relationId}')
+  )";
+            var isValid = Convert.ToInt32(await checkCmd.ExecuteScalarAsync(cancellationToken)) > 0;
+            if (!isValid)
+            {
+                await tx.RollbackAsync(cancellationToken);
+                return false;
+            }
 
             await using var cmd = conn.CreateCommand();
-            cmd!.CommandText = $@"SELECT [Id] FROM [dbo].[{Escape(stT)}] WHERE [MessageId]='{messageId}' AND [UserId]='{userId}'";
+            cmd.Transaction = tx.GetDbTransaction();
+            cmd.CommandText = $@"SELECT [Id] FROM [dbo].[{Escape(stT)}] WHERE [MessageId]='{messageId}' AND [UserId]='{userId}'";
             await using var r = await cmd.ExecuteReaderAsync(cancellationToken);
             if (await r.ReadAsync(cancellationToken))
             {
                 var id = r.GetGuid(0);
                 await r.CloseAsync();
-                await _db.Database.ExecuteSqlRawAsync(
-                    $@"UPDATE [dbo].[{Escape(stT)}] SET [Status]=N'{statusEsc}' WHERE [Id]='{id}'",
-                    cancellationToken);
+                await using var updateCmd = conn.CreateCommand();
+                updateCmd.Transaction = tx.GetDbTransaction();
+                updateCmd.CommandText = $@"UPDATE [dbo].[{Escape(stT)}] SET [Status]=N'{statusEsc}' WHERE [Id]='{id}'";
+                await updateCmd.ExecuteNonQueryAsync(cancellationToken);
             }
             else
             {
                 await r.CloseAsync();
                 var newId = Guid.NewGuid();
-                await _db.Database.ExecuteSqlRawAsync(
-                    $@"INSERT INTO [dbo].[{Escape(stT)}] ([Id],[MessageId],[UserId],[Status],[CreatedAt])
-VALUES ('{newId}','{messageId}','{userId}',N'{statusEsc}','{now:O}')",
-                    cancellationToken);
+                await using var insertCmd = conn.CreateCommand();
+                insertCmd.Transaction = tx.GetDbTransaction();
+                insertCmd.CommandText = $@"INSERT INTO [dbo].[{Escape(stT)}] ([Id],[MessageId],[UserId],[Status],[CreatedAt])
+VALUES ('{newId}','{messageId}','{userId}',N'{statusEsc}','{now:O}')";
+                await insertCmd.ExecuteNonQueryAsync(cancellationToken);
             }
+            
+            await tx.CommitAsync(cancellationToken);
             return true;
         }
-        finally
+        catch
         {
-            await _db.Database.CloseConnectionAsync();
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<bool> UpdateMessageStatusDirectlyAsync(Guid relationId, Guid messageId, Guid userId, string status, CancellationToken cancellationToken = default)
+    {
+        await _tables.EnsureConversationTablesAsync(relationId, cancellationToken);
+        var stT = _tables.GetTableName("MessageStatus", relationId);
+        var statusEsc = EscapeLiteral(status);
+        var now = DateTime.UtcNow;
+
+        // 使用事务确保数据一致性
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            var conn = _db.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await _db.Database.OpenConnectionAsync(cancellationToken);
+            }
+
+            // 直接更新或插入状态记录，不验证接收方（用于处理 ReceiverId 为 NULL 的旧消息）
+            await using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx.GetDbTransaction();
+            cmd.CommandText = $@"SELECT [Id] FROM [dbo].[{Escape(stT)}] WHERE [MessageId]='{messageId}' AND [UserId]='{userId}'";
+            await using var r = await cmd.ExecuteReaderAsync(cancellationToken);
+            if (await r.ReadAsync(cancellationToken))
+            {
+                var id = r.GetGuid(0);
+                await r.CloseAsync();
+                await using var updateCmd = conn.CreateCommand();
+                updateCmd.Transaction = tx.GetDbTransaction();
+                updateCmd.CommandText = $@"UPDATE [dbo].[{Escape(stT)}] SET [Status]=N'{statusEsc}' WHERE [Id]='{id}'";
+                await updateCmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+            else
+            {
+                await r.CloseAsync();
+                var newId = Guid.NewGuid();
+                await using var insertCmd = conn.CreateCommand();
+                insertCmd.Transaction = tx.GetDbTransaction();
+                insertCmd.CommandText = $@"INSERT INTO [dbo].[{Escape(stT)}] ([Id],[MessageId],[UserId],[Status],[CreatedAt])
+VALUES ('{newId}','{messageId}','{userId}',N'{statusEsc}','{now:O}')";
+                await insertCmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+            
+            await tx.CommitAsync(cancellationToken);
+            return true;
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw;
         }
     }
 
@@ -220,14 +350,50 @@ VALUES ('{newId}','{messageId}','{userId}',N'{statusEsc}','{now:O}')",
         var statusEsc = EscapeLiteral("Read");
         var now = DateTime.UtcNow;
 
-        var conn = _db.Database.GetDbConnection();
-        await _db.Database.OpenConnectionAsync(cancellationToken);
+        // 使用事务确保数据一致性
+        await using var tx = await _db.Database.BeginTransactionAsync(cancellationToken);
         try
         {
-            // 1. 查询所有接收方是当前用户且发送方不是当前用户的消息（未删除）
+            var conn = _db.Database.GetDbConnection();
+            if (conn.State != System.Data.ConnectionState.Open)
+            {
+                await _db.Database.OpenConnectionAsync(cancellationToken);
+            }
+
+            // 1. 查询所有未读消息（未删除）：
+            //    - 私聊消息：接收方是当前用户且发送方不是当前用户
+            //    - 群组消息：群组ID匹配且发送方不是当前用户，且（没有状态记录 || 有状态记录但状态不是Read）
+            // 注意：排除已有 Read 状态的消息
             await using var queryCmd = conn.CreateCommand();
-            queryCmd!.CommandText = $@"SELECT [Id], [SenderId] FROM [dbo].[{Escape(msgT)}] 
-WHERE [IsDeleted] = 0 AND [ReceiverId] = '{userId}' AND [SenderId] <> '{userId}'";
+            queryCmd.Transaction = tx.GetDbTransaction();
+            queryCmd.CommandText = $@"SELECT [Id], [SenderId] FROM [dbo].[{Escape(msgT)}] m
+WHERE m.[IsDeleted] = 0 
+  AND m.[SenderId] <> '{userId}'
+  AND (
+    -- 私聊消息：接收方是当前用户
+    (m.[ReceiverId] = '{userId}' AND m.[GroupId] IS NULL)
+    OR
+    -- 群组消息：群组ID匹配，且（没有状态记录 || 有状态记录但状态不是Read）
+    (m.[GroupId] = '{relationId}' AND (
+      NOT EXISTS (
+        SELECT 1 FROM [dbo].[{Escape(stT)}] s 
+        WHERE s.[MessageId] = m.[Id] 
+          AND s.[UserId] = '{userId}'
+      )
+      OR EXISTS (
+        SELECT 1 FROM [dbo].[{Escape(stT)}] s 
+        WHERE s.[MessageId] = m.[Id] 
+          AND s.[UserId] = '{userId}'
+          AND s.[Status] <> N'Read'
+      )
+    ))
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM [dbo].[{Escape(stT)}] s 
+    WHERE s.[MessageId] = m.[Id] 
+      AND s.[UserId] = '{userId}' 
+      AND s.[Status] = N'Read'
+  )";
             
             var unreadMessageIds = new List<Guid>();
             var senderIds = new HashSet<Guid>();
@@ -243,16 +409,20 @@ WHERE [IsDeleted] = 0 AND [ReceiverId] = '{userId}' AND [SenderId] <> '{userId}'
             await reader.CloseAsync();
 
             if (unreadMessageIds.Count == 0)
+            {
+                await tx.CommitAsync(cancellationToken);
                 return Array.Empty<Guid>();
+            }
 
-            // 2. 批量更新或插入 MessageStatus 记录
+            // 2. 批量更新或插入 MessageStatus 记录（使用事务中的连接）
             var markedMessageIds = new List<Guid>();
             
             foreach (var messageId in unreadMessageIds)
             {
-                // 检查是否已有状态记录
+                // 检查是否已有状态记录（使用 MERGE 语句更高效，但这里用简单方式）
                 await using var checkCmd = conn.CreateCommand();
-                checkCmd!.CommandText = $@"SELECT [Id] FROM [dbo].[{Escape(stT)}] 
+                checkCmd.Transaction = tx.GetDbTransaction();
+                checkCmd.CommandText = $@"SELECT [Id] FROM [dbo].[{Escape(stT)}] 
 WHERE [MessageId] = '{messageId}' AND [UserId] = '{userId}'";
                 
                 await using var checkReader = await checkCmd.ExecuteReaderAsync(cancellationToken);
@@ -260,31 +430,121 @@ WHERE [MessageId] = '{messageId}' AND [UserId] = '{userId}'";
                 {
                     var statusId = checkReader.GetGuid(0);
                     await checkReader.CloseAsync();
-                    // 更新现有记录
-                    await _db.Database.ExecuteSqlRawAsync(
-                        $@"UPDATE [dbo].[{Escape(stT)}] SET [Status] = N'{statusEsc}' WHERE [Id] = '{statusId}'",
-                        cancellationToken);
+                    // 更新现有记录（确保更新的是接收方的状态记录）
+                    await using var updateCmd = conn.CreateCommand();
+                    updateCmd.Transaction = tx.GetDbTransaction();
+                    updateCmd.CommandText = $@"UPDATE [dbo].[{Escape(stT)}] SET [Status] = N'{statusEsc}' WHERE [Id] = '{statusId}' AND [UserId] = '{userId}'";
+                    var updateResult = await updateCmd.ExecuteNonQueryAsync(cancellationToken);
+                    if (updateResult == 0)
+                    {
+                        // 如果更新失败（可能是状态记录不是接收方的），则插入新记录
+                        var newStatusId = Guid.NewGuid();
+                        await using var insertCmd = conn.CreateCommand();
+                        insertCmd.Transaction = tx.GetDbTransaction();
+                        insertCmd.CommandText = $@"INSERT INTO [dbo].[{Escape(stT)}] ([Id],[MessageId],[UserId],[Status],[CreatedAt])
+VALUES ('{newStatusId}','{messageId}','{userId}',N'{statusEsc}','{now:O}')";
+                        await insertCmd.ExecuteNonQueryAsync(cancellationToken);
+                    }
                 }
                 else
                 {
                     await checkReader.CloseAsync();
                     // 插入新记录
                     var newStatusId = Guid.NewGuid();
-                    await _db.Database.ExecuteSqlRawAsync(
-                        $@"INSERT INTO [dbo].[{Escape(stT)}] ([Id],[MessageId],[UserId],[Status],[CreatedAt])
-VALUES ('{newStatusId}','{messageId}','{userId}',N'{statusEsc}','{now:O}')",
-                        cancellationToken);
+                    await using var insertCmd = conn.CreateCommand();
+                    insertCmd.Transaction = tx.GetDbTransaction();
+                    insertCmd.CommandText = $@"INSERT INTO [dbo].[{Escape(stT)}] ([Id],[MessageId],[UserId],[Status],[CreatedAt])
+VALUES ('{newStatusId}','{messageId}','{userId}',N'{statusEsc}','{now:O}')";
+                    await insertCmd.ExecuteNonQueryAsync(cancellationToken);
                 }
                 
                 markedMessageIds.Add(messageId);
             }
 
+            await tx.CommitAsync(cancellationToken);
             return markedMessageIds;
+        }
+        catch
+        {
+            await tx.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    public async Task<int> GetUnreadCountAsync(Guid relationId, Guid userId, CancellationToken cancellationToken = default)
+    {
+        await _tables.EnsureConversationTablesAsync(relationId, cancellationToken);
+        var msgT = _tables.GetTableName("Message", relationId);
+        var stT = _tables.GetTableName("MessageStatus", relationId);
+
+        var conn = _db.Database.GetDbConnection();
+        await _db.Database.OpenConnectionAsync(cancellationToken);
+        try
+        {
+            // 查询未读消息数量：
+            // 1. 私聊消息：接收方是当前用户且发送方不是当前用户
+            // 2. 群组消息：群组ID匹配且发送方不是当前用户，且（没有状态记录 || 有状态记录但状态不是Read）
+            await using var queryCmd = conn.CreateCommand();
+            queryCmd!.CommandText = $@"SELECT COUNT(*) FROM [dbo].[{Escape(msgT)}] m
+WHERE m.[IsDeleted] = 0 
+  AND m.[SenderId] <> '{userId}'
+  AND (
+    -- 私聊消息：接收方是当前用户
+    (m.[ReceiverId] = '{userId}' AND m.[GroupId] IS NULL)
+    OR
+    -- 群组消息：群组ID匹配，且（没有状态记录 || 有状态记录但状态不是Read）
+    (m.[GroupId] = '{relationId}' AND (
+      NOT EXISTS (
+        SELECT 1 FROM [dbo].[{Escape(stT)}] s 
+        WHERE s.[MessageId] = m.[Id] 
+          AND s.[UserId] = '{userId}'
+      )
+      OR EXISTS (
+        SELECT 1 FROM [dbo].[{Escape(stT)}] s 
+        WHERE s.[MessageId] = m.[Id] 
+          AND s.[UserId] = '{userId}'
+          AND s.[Status] <> N'Read'
+      )
+    ))
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM [dbo].[{Escape(stT)}] s 
+    WHERE s.[MessageId] = m.[Id] 
+      AND s.[UserId] = '{userId}' 
+      AND s.[Status] = N'Read'
+  )";
+            
+            var result = await queryCmd.ExecuteScalarAsync(cancellationToken);
+            return result != null ? Convert.ToInt32(result) : 0;
         }
         finally
         {
             await _db.Database.CloseConnectionAsync();
         }
+    }
+
+    public async Task<IReadOnlyList<Message>> GetMessagesWithNullReceiverIdAsync(Guid relationId, Guid userId, CancellationToken cancellationToken = default)
+    {
+        await _tables.EnsureConversationTablesAsync(relationId, cancellationToken);
+        var msgT = _tables.GetTableName("Message", relationId);
+        var stT = _tables.GetTableName("MessageStatus", relationId);
+
+        // 查询 ReceiverId 为 NULL 且发送方不是当前用户的消息（未删除）
+        // 并且没有已读状态记录的消息
+        var sql = $@"SELECT * FROM [dbo].[{Escape(msgT)}] m
+WHERE m.[IsDeleted] = 0 
+  AND m.[ReceiverId] IS NULL
+  AND m.[GroupId] IS NULL
+  AND m.[SenderId] <> '{userId}'
+  AND NOT EXISTS (
+    SELECT 1 FROM [dbo].[{Escape(stT)}] s 
+    WHERE s.[MessageId] = m.[Id] 
+      AND s.[UserId] = '{userId}' 
+      AND s.[Status] = N'Read'
+  )";
+        
+        var messages = await _db.Set<Message>().FromSqlRaw(sql).ToListAsync(cancellationToken);
+        return messages;
     }
 
     private async Task LoadAttachmentsAndStatusesAsync(Guid relationId, Message msg, CancellationToken ct)
