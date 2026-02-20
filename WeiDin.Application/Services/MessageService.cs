@@ -53,19 +53,36 @@ public class MessageService : ApplicationService, IMessageService
         var relationId = createMessageDto.RelationId;
         var input = MapToCreateMessageInput(createMessageDto);
         
-        // 如果 ReceiverId 未设置且不是群组消息，通过 relationId 查询 Friendship 获取接收方ID
-        if (!input.ReceiverId.HasValue && !input.GroupId.HasValue)
+        // 首先判断 relationId 是否是群组ID（群组的 ConversationId = GroupId）
+        var group = await _groupService.GetByIdAsync(relationId);
+        if (group != null)
         {
-            var friendship = await _friendshipService.GetByConversationIdAsync(relationId, senderId);
-            if (friendship != null)
+            // 这是群组消息
+            // 验证用户是否是群组成员（IsActive = true）
+            if (!await _groupService.IsMemberAsync(relationId, senderId))
             {
-                // 确定接收方：如果当前用户是 UserId，则接收方是 FriendId，否则接收方是 UserId
-                input.ReceiverId = friendship.UserId == senderId ? friendship.FriendId : friendship.UserId;
+                throw new InvalidOperationException("您不是该群组的成员，无法发送消息");
             }
-            else
+            
+            // 设置 GroupId
+            input.GroupId = relationId;
+        }
+        else
+        {
+            // 这是私聊消息，通过 relationId 查询 Friendship 获取接收方ID
+            if (!input.ReceiverId.HasValue)
             {
-                // 如果查询不到好友关系，抛出异常，避免保存 ReceiverId 为 NULL 的消息
-                throw new InvalidOperationException($"未找到 conversationId={relationId} 对应的好友关系，无法确定接收方");
+                var friendship = await _friendshipService.GetByConversationIdAsync(relationId, senderId);
+                if (friendship != null)
+                {
+                    // 确定接收方：如果当前用户是 UserId，则接收方是 FriendId，否则接收方是 UserId
+                    input.ReceiverId = friendship.UserId == senderId ? friendship.FriendId : friendship.UserId;
+                }
+                else
+                {
+                    // 如果查询不到好友关系，抛出异常，避免保存 ReceiverId 为 NULL 的消息
+                    throw new InvalidOperationException($"未找到 conversationId={relationId} 对应的好友关系，无法确定接收方");
+                }
             }
         }
         

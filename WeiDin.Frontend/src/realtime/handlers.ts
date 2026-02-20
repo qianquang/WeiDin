@@ -9,6 +9,9 @@ import { useChatStore } from '@/stores/chat'
 import { useGroupStore } from '@/stores/group'
 import { useInvalidationStore } from '@/stores/invalidation'
 import { useAuthStore } from '@/stores/auth'
+import { useSignalRStore } from '@/stores/signalr'
+import { useSignalR } from '@/utils/signalr'
+import { groupApi } from '@/api'
 import { ElMessage } from 'element-plus'
 import type { 
   Friendship, 
@@ -115,18 +118,45 @@ export function registerRealtimeHandlers(): void {
   })
 
   // 接收群聊消息
-  realtimeBus.on('ReceiveGroupMessage', (data: SignalRGroupMessage) => {
+  realtimeBus.on('ReceiveGroupMessage', async (data: SignalRGroupMessage) => {
     console.log('收到群聊消息:', data)
     if (data && data.id && data.relationId) {
+      // 确保群组消息的 relationId 与 groupId 一致
+      if (data.groupId && data.relationId !== data.groupId) {
+        data.relationId = data.groupId
+      }
+      
       // 直接添加消息到 store（SignalRGroupMessage 就是 Message 类型）
       chatStore.addMessage(data)
       
-      // 更新会话的最后消息和未读计数
-      chatStore.updateSessionLastMessage(data.relationId, data)
+      // 检查会话是否存在
+      let session = chatStore.sessions.find(s => s.relationId === data.relationId)
       
-      // 如果会话不存在，标记失效以便页面重新加载会话列表
-      const session = chatStore.sessions.find(s => s.relationId === data.relationId)
-      if (!session) {
+      // 如果会话不存在，尝试创建会话（群组的 relationId = groupId）
+      if (!session && data.groupId) {
+        try {
+          const group = await groupApi.getGroupById(data.groupId)
+          if (group) {
+            chatStore.addSession({
+              id: group.id,
+              relationId: group.id,
+              type: 'group',
+              name: group.name,
+              avatar: group.avatar,
+              unreadCount: 0
+            })
+            session = chatStore.sessions.find(s => s.relationId === data.relationId)
+          }
+        } catch (error) {
+          console.error('获取群组信息失败，无法创建会话:', error)
+        }
+      }
+      
+      // 更新会话的最后消息和未读计数
+      if (session) {
+        chatStore.updateSessionLastMessage(data.relationId, data)
+      } else {
+        // 如果仍然找不到会话，标记失效以便页面重新加载会话列表
         invalidationStore.markStale('chat')
       }
     }
@@ -296,6 +326,42 @@ export function registerRealtimeHandlers(): void {
         console.error('重新加载已发送申请失败:', err)
       })
       ElMessage.warning(`您的加入群组"${data.GroupName}"的申请已被拒绝`)
+    }
+  })
+
+  // ========== 群组 SignalR 组管理事件 ==========
+
+  // 收到加入群组通知
+  realtimeBus.on('JoinGroupNotification', (groupId: string) => {
+    console.log('收到加入群组通知:', groupId)
+    if (groupId) {
+      const signalrStore = useSignalRStore()
+      const { joinGroup } = useSignalR()
+      const conn = signalrStore.connection
+      if (conn && conn.state === 'Connected') {
+        joinGroup(groupId).catch(err => {
+          console.error('自动加入群组组失败:', err)
+        })
+      } else {
+        console.warn('SignalR 连接未建立，无法加入群组组:', groupId)
+      }
+    }
+  })
+
+  // 收到离开群组通知
+  realtimeBus.on('LeaveGroupNotification', (groupId: string) => {
+    console.log('收到离开群组通知:', groupId)
+    if (groupId) {
+      const signalrStore = useSignalRStore()
+      const { leaveGroup } = useSignalR()
+      const conn = signalrStore.connection
+      if (conn && conn.state === 'Connected') {
+        leaveGroup(groupId).catch(err => {
+          console.error('自动离开群组组失败:', err)
+        })
+      } else {
+        console.warn('SignalR 连接未建立，无法离开群组组:', groupId)
+      }
     }
   })
 

@@ -19,7 +19,10 @@ export const useChatStore = defineStore('chat', () => {
 
   const currentMessages = computed(() => {
     if (!currentSessionId.value) return []
-    return messages.value.get(currentSessionId.value) || []
+    // 先通过 session.id 找到会话，然后使用 relationId 获取消息
+    const session = sessions.value.find(s => s.id === currentSessionId.value)
+    if (!session || !session.relationId) return []
+    return messages.value.get(session.relationId) || []
   })
 
   const currentSession = computed(() => {
@@ -59,6 +62,8 @@ export const useChatStore = defineStore('chat', () => {
       list.push(message)
       list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
     }
+    // 强制触发响应式更新：重新设置 Map 中的值
+    messages.value.set(rid, [...list])
   }
 
   const loadMessages = async (relationId: string, page = 1, pageSize = 20) => {
@@ -115,7 +120,8 @@ export const useChatStore = defineStore('chat', () => {
   const updateSessionLastMessage = (relationId: string, message: Message) => {
     const session = sessions.value.find(s => s.relationId === relationId)
     if (session) {
-      session.lastMessage = message
+      // 使用对象展开来触发响应式更新
+      session.lastMessage = { ...message }
       // 如果当前不在查看该会话，增加未读计数（私聊和群聊都支持）
       if (currentSessionId.value !== session.id) {
         session.unreadCount = (session.unreadCount || 0) + 1

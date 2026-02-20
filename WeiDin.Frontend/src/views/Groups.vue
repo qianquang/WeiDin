@@ -18,21 +18,21 @@
         <el-tabs v-model="activeTab">
           <!-- 所有群组标签页 -->
           <el-tab-pane label="所有群组" name="all">
-            <div class="groups-list">
-              <div
+        <div class="groups-list">
+          <div
                 v-for="group in allGroups"
-                :key="group.id"
-                class="group-item"
-              >
-                <el-avatar :size="50" :src="group.avatar">
-                  {{ group.name.charAt(0) }}
-                </el-avatar>
-                <div class="group-info">
-                  <div class="group-name">{{ group.name }}</div>
-                  <div class="group-description">{{ group.description || '暂无描述' }}</div>
-                  <div class="group-meta">
-                    <span>成员: {{ group.currentMembers }}/{{ group.maxMembers }}</span>
-                    <span>创建时间: {{ formatDate(group.createdAt) }}</span>
+            :key="group.id"
+            class="group-item"
+          >
+            <el-avatar :size="50" :src="group.avatar">
+              {{ group.name.charAt(0) }}
+            </el-avatar>
+            <div class="group-info">
+              <div class="group-name">{{ group.name }}</div>
+              <div class="group-description">{{ group.description || '暂无描述' }}</div>
+              <div class="group-meta">
+                <span>成员: {{ group.currentMembers }}/{{ group.maxMembers }}</span>
+                <span>创建时间: {{ formatDate(group.createdAt) }}</span>
                     <span class="group-id">
                       群组ID: 
                       <el-text type="primary" class="group-id-text" @click="copyGroupId(group.id)">
@@ -40,13 +40,13 @@
                       </el-text>
                       <el-icon class="copy-icon"><DocumentCopy /></el-icon>
                     </span>
-                  </div>
-                </div>
-                <div class="group-actions">
-                  <el-button type="text" @click="viewGroup(group)">查看</el-button>
-                  <el-button v-if="group.ownerId === authStore.userId" type="text" @click="manageGroup(group)">管理</el-button>
-                </div>
               </div>
+            </div>
+            <div class="group-actions">
+              <el-button type="text" @click="viewGroup(group)">查看</el-button>
+              <el-button v-if="group.ownerId === authStore.userId" type="text" @click="manageGroup(group)">管理</el-button>
+            </div>
+          </div>
               <div v-if="allGroups.length === 0" class="empty-state">
                 <el-empty description="暂无群组" :image-size="100" />
               </div>
@@ -178,7 +178,7 @@
               </div>
               <div v-if="sentRequests.length === 0" class="empty-state">
                 <el-empty description="暂无已发送的群组申请" :image-size="100" />
-              </div>
+        </div>
             </div>
           </el-tab-pane>
         </el-tabs>

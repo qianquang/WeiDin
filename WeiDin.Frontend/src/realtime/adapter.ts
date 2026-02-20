@@ -31,6 +31,9 @@ const HUB_EVENTS = [
   'GroupRequestReceived',
   'GroupRequestAccepted',
   'GroupRequestRejected',
+  // 群组 SignalR 组管理事件
+  'JoinGroupNotification',
+  'LeaveGroupNotification',
 ] as const
 
 type HubEvent = typeof HUB_EVENTS[number]

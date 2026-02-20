@@ -12,6 +12,7 @@ public class ChatHub : Hub
     private readonly ILogger<ChatHub> _logger;
     private readonly IFriendshipService _friendshipService;
     private readonly IUserService _userService;
+    private readonly IGroupService _groupService;
 
     /// <summary>
     /// 内存在线用户表：UserId → 该用户所有活跃连接 ID 集合。
@@ -24,11 +25,12 @@ public class ChatHub : Hub
     /// </summary>
     private static readonly object _lock = new();
 
-    public ChatHub(ILogger<ChatHub> logger, IFriendshipService friendshipService, IUserService userService)
+    public ChatHub(ILogger<ChatHub> logger, IFriendshipService friendshipService, IUserService userService, IGroupService groupService)
     {
         _logger = logger;
         _friendshipService = friendshipService;
         _userService = userService;
+        _groupService = groupService;
     }
 
     /// <summary>
@@ -138,6 +140,21 @@ public class ChatHub : Hub
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "获取用户 {UserId} 的待处理好友申请失败", uid);
+            }
+
+            // 6. 自动加入用户所属的所有群组组
+            try
+            {
+                var groups = await _groupService.GetByUserIdAsync(uid);
+                foreach (var group in groups)
+                {
+                    await Groups.AddToGroupAsync(connId, $"group_{group.Id}");
+                }
+                _logger.LogInformation("用户 {UserId} 已自动加入 {Count} 个群组组", uid, groups.Count());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "自动加入群组组失败，UserId: {UserId}", uid);
             }
 
             _logger.LogInformation("用户 {UserId} 已连接，连接ID {ConnectionId}，当前连接数 {Count}",

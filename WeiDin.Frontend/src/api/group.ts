@@ -6,7 +6,7 @@ import type {
   GroupMember, 
   AddGroupMemberDto, 
   UpdateGroupMemberDto,
-  PaginationParams
+  PaginationParams 
 } from '@/types'
 
 // 群组相关API

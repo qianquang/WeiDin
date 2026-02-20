@@ -356,6 +356,11 @@ public class GroupsController : AbpControllerBase
                     await _hubContext.Clients.Group($"user_{member.UserId}")
                         .SendAsync("MemberLeft", new { GroupId = id, UserId = userId });
                 }
+                
+                // 通知离开的用户离开群组 SignalR 组
+                await _hubContext.Clients.Group($"user_{userId}")
+                    .SendAsync("LeaveGroupNotification", id.ToString());
+                
                 _logger.LogInformation("已通过 SignalR 发送成员退出通知给群组 {GroupId} 的所有成员", id);
             }
             catch (Exception ex)
@@ -411,6 +416,11 @@ public class GroupsController : AbpControllerBase
                     await _hubContext.Clients.Group($"user_{member.UserId}")
                         .SendAsync("MemberAdded", new { GroupId = id, UserId = addMemberDto.UserId });
                 }
+                
+                // 通知新添加的成员加入群组 SignalR 组
+                await _hubContext.Clients.Group($"user_{addMemberDto.UserId}")
+                    .SendAsync("JoinGroupNotification", id.ToString());
+                
                 _logger.LogInformation("已通过 SignalR 发送成员添加通知给群组 {GroupId} 的所有成员", id);
             }
             catch (Exception ex)
@@ -463,6 +473,11 @@ public class GroupsController : AbpControllerBase
                 // 也通知被移除的成员
                 await _hubContext.Clients.Group($"user_{memberId}")
                     .SendAsync("MemberRemoved", new { GroupId = id, UserId = memberId });
+                
+                // 通知被移除的成员离开群组 SignalR 组
+                await _hubContext.Clients.Group($"user_{memberId}")
+                    .SendAsync("LeaveGroupNotification", id.ToString());
+                
                 _logger.LogInformation("已通过 SignalR 发送成员移除通知给群组 {GroupId} 的所有成员", id);
             }
             catch (Exception ex)
@@ -642,6 +657,10 @@ public class GroupsController : AbpControllerBase
                 {
                     await _hubContext.Clients.Group($"user_{member.UserId}")
                         .SendAsync("MemberJoined", new { GroupId = member.GroupId, UserId = member.UserId });
+                    
+                    // 通知申请者加入群组 SignalR 组
+                    await _hubContext.Clients.Group($"user_{member.UserId}")
+                        .SendAsync("JoinGroupNotification", member.GroupId.ToString());
                 }
                 
                 _logger.LogInformation("已通过 SignalR 发送申请接受通知给申请者 {UserId}", member.UserId);
