@@ -1,5 +1,5 @@
 import request from './request'
-import type { FileUploadResult } from '@/types'
+import type { FileUploadResult, Message, UploadAndSendFileDto } from '@/types'
 
 // 文件相关API
 export const fileApi = {
@@ -23,6 +23,21 @@ export const fileApi = {
     })
     
     return request.post('/files/upload-multiple', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+
+  // 上传并直接发送为消息
+  uploadAndSendFile: (data: UploadAndSendFileDto): Promise<Message> => {
+    const formData = new FormData()
+    formData.append('relationId', data.relationId)
+    formData.append('file', data.file)
+    if (data.messageType) formData.append('messageType', data.messageType)
+    if (data.content) formData.append('content', data.content)
+
+    return request.post('/files/upload-and-send', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

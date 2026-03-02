@@ -19,17 +19,20 @@ public class MessagesController : AbpControllerBase
     private readonly IMessageService _messageService;
     private readonly IFriendshipService _friendshipService;
     private readonly IHubContext<ChatHub> _hubContext;
+    private readonly IWebHostEnvironment _environment;
     private readonly ILogger<MessagesController> _logger;
 
     public MessagesController(
         IMessageService messageService,
         IFriendshipService friendshipService,
         IHubContext<ChatHub> hubContext,
+        IWebHostEnvironment environment,
         ILogger<MessagesController> logger)
     {
         _messageService = messageService;
         _friendshipService = friendshipService;
         _hubContext = hubContext;
+        _environment = environment;
         _logger = logger;
     }
 
@@ -216,5 +219,53 @@ public class MessagesController : AbpControllerBase
 
         var messages = await _messageService.SearchByRelationAsync(relationId, userId, keyword, page, pageSize);
         return Ok(messages);
+    }
+
+    /// <summary>下载消息附件（按 RelationId + MessageId + AttachmentId）。</summary>
+    [HttpGet("relation/{relationId:guid}/{id:guid}/attachments/{attachmentId:guid}/download")]
+    public async Task<IActionResult> DownloadAttachment(Guid relationId, Guid id, Guid attachmentId)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out _))
+            return Unauthorized("无效的用户身份");
+
+        var message = await _messageService.GetByIdAsync(relationId, id);
+        if (message == null)
+            return NotFound("消息不存在");
+
+        var attachment = message.Attachments.FirstOrDefault(a => a.Id == attachmentId);
+        if (attachment == null)
+            return NotFound("附件不存在");
+
+        var filePath = ResolveAttachmentPhysicalPath(attachment.FilePath);
+        if (string.IsNullOrWhiteSpace(filePath) || !System.IO.File.Exists(filePath))
+            return NotFound("附件文件不存在");
+
+        var contentType = string.IsNullOrWhiteSpace(attachment.FileType)
+            ? "application/octet-stream"
+            : attachment.FileType;
+
+        return PhysicalFile(filePath, contentType, attachment.FileName);
+    }
+
+    private string? ResolveAttachmentPhysicalPath(string rawFilePath)
+    {
+        if (string.IsNullOrWhiteSpace(rawFilePath))
+            return null;
+
+        // 兼容历史数据：可能存的是绝对路径、uploads/xxx、/uploads/xxx 或仅文件名
+        if (Path.IsPathRooted(rawFilePath))
+            return rawFilePath;
+
+        var uploadsRoot = Path.Combine(_environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot"), "uploads");
+        var normalized = rawFilePath.Replace('\\', '/').Trim();
+
+        if (normalized.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+            normalized = normalized["/uploads/".Length..];
+        else if (normalized.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
+            normalized = normalized["uploads/".Length..];
+
+        var safeFileName = Path.GetFileName(normalized);
+        return Path.Combine(uploadsRoot, safeFileName);
     }
 }

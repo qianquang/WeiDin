@@ -143,9 +143,13 @@
                 <div v-else-if="message.messageType === 'Image'" class="image-message">
                   <el-image :src="message.content" fit="cover" />
                 </div>
-                <div v-else-if="message.messageType === 'File'" class="file-message">
+                <div
+                  v-else-if="message.messageType === 'File'"
+                  class="file-message"
+                  @click="downloadFileMessage(message)"
+                >
                   <el-icon><Document /></el-icon>
-                  <span>{{ message.attachments[0]?.fileName }}</span>
+                  <span class="file-name">{{ message.attachments[0]?.fileName || '文件' }}</span>
                 </div>
               </div>
             </div>
@@ -155,9 +159,7 @@
         <!-- 消息输入框 -->
         <div class="message-input">
           <div class="input-toolbar">
-            <el-button type="text" :icon="Picture" @click="handleImageUpload" />
-            <el-button type="text" :icon="Paperclip" @click="handleFileUpload" />
-            <el-button type="text" :icon="Microphone" />
+            <el-button type="text" :icon="Paperclip" :loading="isUploading" @click="handleFileUpload" size="large" />
           </div>
           <div class="input-area">
             <el-input
@@ -206,7 +208,6 @@ import { ElMessage } from 'element-plus'
 import {
   MoreFilled,
   Search,
-  Picture,
   Paperclip,
   Microphone,
   Position,
@@ -218,8 +219,8 @@ import { useAuthStore } from '@/stores/auth'
 import { useChatStore } from '@/stores/chat'
 import { useFriendshipStore } from '@/stores/friendship'
 import { useSignalRStore } from '@/stores/signalr'
-import { groupApi, messageApi } from '@/api'
-import type { CreateGroupDto, ChatSession, Friendship } from '@/types'
+import { fileApi, groupApi, messageApi } from '@/api'
+import type { CreateGroupDto, ChatSession, Friendship, Message } from '@/types'
 import dayjs from 'dayjs'
 
 const router = useRouter()
@@ -235,6 +236,7 @@ const messageText = ref('')
 const messageListRef = ref<HTMLElement>()
 const showCreateGroupDialog = ref(false)
 const isOnlineStatus = ref(authStore.user?.isOnline || false)
+const isUploading = ref(false)
 
 watch(() => authStore.user?.isOnline, (v) => {
   if (v !== undefined) isOnlineStatus.value = v
@@ -465,14 +467,69 @@ const handleUserCommand = async (command: string) => {
   }
 }
 
-const handleImageUpload = () => {
-  // 处理图片上传
-  console.log('上传图片')
+const handleFileUpload = () => {
+  selectAndUploadFile()
 }
 
-const handleFileUpload = () => {
-  // 处理文件上传
-  console.log('上传文件')
+const selectAndUploadFile = () => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.onchange = async () => {
+    const file = input.files?.[0]
+    if (!file) return
+    await uploadAndSendFile(file)
+  }
+  input.click()
+}
+
+const uploadAndSendFile = async (file: File) => {
+  const session = chatStore.currentSession
+  if (!session) {
+    ElMessage.warning('请先选择一个会话')
+    return
+  }
+
+  try {
+    isUploading.value = true
+    const message = await fileApi.uploadAndSendFile({
+      relationId: session.relationId,
+      file
+    })
+    chatStore.addMessage(message)
+    chatStore.updateSessionLastMessage(session.relationId, message)
+    nextTick(() => scrollToBottom())
+  } catch (error) {
+    console.error('发送文件失败:', error)
+    ElMessage.error('发送文件失败')
+  } finally {
+    isUploading.value = false
+  }
+}
+
+const downloadFileMessage = async (message: Message) => {
+  const attachment = message.attachments?.[0]
+  if (!attachment) {
+    ElMessage.warning('该消息没有附件')
+    return
+  }
+
+  const fileName = extractStoredFileName(attachment.filePath)
+  if (!fileName) {
+    ElMessage.error('附件路径无效')
+    return
+  }
+
+  try {
+    await fileApi.downloadFile(fileName, attachment.fileName)
+  } catch (error) {
+    console.error('下载文件失败:', error)
+    ElMessage.error('下载文件失败')
+  }
+}
+
+const extractStoredFileName = (filePath?: string) => {
+  if (!filePath) return ''
+  return filePath.split(/[\\/]/).pop() || ''
 }
 
 // 跳转到好友管理页面
@@ -652,6 +709,7 @@ watch(() => [route.query.friend, route.query.group], () => {
   flex: 1;
   display: flex;
   flex-direction: column;
+  height: 100%;  
 }
 
 .chat-header {
@@ -782,6 +840,11 @@ watch(() => [route.query.friend, route.query.group], () => {
   display: flex;
   align-items: center;
   gap: 5px;
+  cursor: pointer;
+}
+
+.file-name {
+  text-decoration: underline;
 }
 
 .message-input {
