@@ -209,6 +209,13 @@ export interface FileUploadResult {
   error?: string
 }
 
+export interface UploadAndSendFileDto {
+  relationId: string
+  file: File
+  messageType?: 'Image' | 'Video' | 'File'
+  content?: string
+}
+
 // API响应类型
 export interface ApiResponse<T = any> {
   code: number
