@@ -6,6 +6,9 @@
 [Bb]in/
 [Oo]bj/
 [Oo]ut/
+**/bin/
+**/obj/
+**/out/
 
 # Visual Studio 用户特定文件
 *.user
