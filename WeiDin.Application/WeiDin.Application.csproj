@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\WeiDin.Core\WeiDin.Core.csproj" />
+    <ProjectReference Include="..\WeiDin.Infrastructure\WeiDin.Infrastructure.csproj" />
   </ItemGroup>
   
   <ItemGroup>

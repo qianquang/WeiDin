@@ -2,7 +2,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Volo.Abp.AutoMapper;
 using Volo.Abp.Modularity;
 using WeiDin.Application.Mappings;
+using WeiDin.Application.Services;
 using WeiDin.Core;
+using WeiDin.Core.Interfaces;
 
 namespace WeiDin.Application;
 
@@ -19,6 +21,9 @@ public class WeiDinApplicationModule : AbpModule
 
         // ABP会自动注册所有实现了IApplicationService接口的服务
         // 所以不需要手动注册服务
+
+        // 注册检索服务 (RAG)
+        context.Services.AddScoped<IRetrievalService, RetrievalService>();
     }
 }
 

@@ -169,4 +169,46 @@ BEGIN
 END
 GO
 
+-- 创建知识库表
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[KnowledgeBases]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE [dbo].[KnowledgeBases] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [Name] nvarchar(100) NOT NULL,
+        [Description] nvarchar(500) NULL,
+        [CreatedAt] datetime2 NOT NULL,
+        [UpdatedAt] datetime2 NOT NULL,
+        [ChunkCount] int NOT NULL DEFAULT 0,
+        [IsEnabled] bit NOT NULL DEFAULT 1
+    );
+
+    CREATE INDEX [IX_KnowledgeBases_Name] ON [dbo].[KnowledgeBases] ([Name]);
+END
+GO
+
+-- 创建知识块表
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[KnowledgeChunks]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE [dbo].[KnowledgeChunks] (
+        [Id] uniqueidentifier NOT NULL PRIMARY KEY,
+        [KnowledgeBaseId] uniqueidentifier NOT NULL,
+        [Type] int NOT NULL DEFAULT 0,
+        [Content] nvarchar(max) NOT NULL,
+        [Metadata] nvarchar(max) NULL,
+        [RelationId] uniqueidentifier NULL,
+        [SenderId] uniqueidentifier NULL,
+        [CreatedAt] datetime2 NOT NULL,
+        [ChunkIndex] int NOT NULL DEFAULT 0,
+        [SourceId] nvarchar(100) NULL,
+        [VectorDimension] int NULL,
+        [Vector] varbinary(max) NULL,
+        FOREIGN KEY ([KnowledgeBaseId]) REFERENCES [dbo].[KnowledgeBases] ([Id]) ON DELETE CASCADE
+    );
+
+    CREATE INDEX [IX_KnowledgeChunks_KnowledgeBaseId] ON [dbo].[KnowledgeChunks] ([KnowledgeBaseId]);
+    CREATE INDEX [IX_KnowledgeChunks_RelationId] ON [dbo].[KnowledgeChunks] ([RelationId]);
+    CREATE INDEX [IX_KnowledgeChunks_CreatedAt] ON [dbo].[KnowledgeChunks] ([CreatedAt]);
+END
+GO
+
 PRINT '数据库初始化完成！';

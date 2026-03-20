@@ -8,6 +8,7 @@ using WeiDin.Core;
 using WeiDin.Core.Interfaces;
 using WeiDin.Infrastructure.Data;
 using WeiDin.Infrastructure.Repositories;
+using WeiDin.Infrastructure.Services;
 
 namespace WeiDin.Infrastructure;
 
@@ -32,7 +33,7 @@ public class WeiDinInfrastructureModule : AbpModule
         {
             // 使用默认连接字符串（从配置中读取 "DefaultConnection"）
             options.UseSqlServer();
-            
+
             // 配置特定 DbContext 的选项
             options.Configure<WeiDinDbContext>(opts =>
             {
@@ -42,7 +43,7 @@ public class WeiDinInfrastructureModule : AbpModule
                 {
                     throw new InvalidOperationException("数据库连接字符串未配置。请在 appsettings.json 中设置 ConnectionStrings:DefaultConnection");
                 }
-                
+
                 // 使用 DbContextOptions 配置 SQL Server 和迁移程序集
                 // 必须显式传递连接字符串
                 opts.DbContextOptions.UseSqlServer(connString, sqlServerOptions =>
@@ -55,6 +56,13 @@ public class WeiDinInfrastructureModule : AbpModule
         // 注册动态表服务和消息仓储
         context.Services.AddTransient<IDynamicTableService, DynamicTableService>();
         context.Services.AddTransient<IDynamicMessageRepository, DynamicMessageRepository>();
+
+        // 注册知识库仓储
+        context.Services.AddTransient<KnowledgeChunkRepository>();
+        context.Services.AddTransient<KnowledgeBaseRepository>();
+
+        // 注册嵌入服务 (不再需要 FaissIndexService，向量直接存数据库)
+        context.Services.AddSingleton<IEmbeddingService, OnnxEmbeddingService>();
     }
 }
 

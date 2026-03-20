@@ -19,6 +19,8 @@ public class WeiDinDbContext : AbpDbContext<WeiDinDbContext>
     public DbSet<GroupMember> GroupMembers { get; set; }
     public DbSet<Friendship> Friendships { get; set; }
     public DbSet<Blacklist> Blacklists { get; set; }
+    public DbSet<KnowledgeBase> KnowledgeBases { get; set; }
+    public DbSet<KnowledgeChunk> KnowledgeChunks { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -168,6 +170,27 @@ public class WeiDinDbContext : AbpDbContext<WeiDinDbContext>
                 .WithMany(e => e.BlacklistedUsers)
                 .HasForeignKey(e => e.BlockedUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // 配置KnowledgeBase实体
+        modelBuilder.Entity<KnowledgeBase>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Name);
+        });
+
+        // 配置KnowledgeChunk实体
+        modelBuilder.Entity<KnowledgeChunk>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.KnowledgeBaseId);
+            entity.HasIndex(e => e.RelationId);
+            entity.HasIndex(e => e.CreatedAt);
+
+            entity.HasOne(e => e.KnowledgeBase)
+                .WithMany(e => e.Chunks)
+                .HasForeignKey(e => e.KnowledgeBaseId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
