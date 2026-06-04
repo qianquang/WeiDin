@@ -20,6 +20,7 @@ public class WeiDinDbContext : AbpDbContext<WeiDinDbContext>
     public DbSet<Friendship> Friendships { get; set; }
     public DbSet<Blacklist> Blacklists { get; set; }
     public DbSet<KnowledgeBase> KnowledgeBases { get; set; }
+    public DbSet<Knowledge> Knowledge { get; set; }
     public DbSet<KnowledgeChunk> KnowledgeChunks { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -179,18 +180,37 @@ public class WeiDinDbContext : AbpDbContext<WeiDinDbContext>
             entity.HasIndex(e => e.Name);
         });
 
+        // 配置Knowledge实体
+        modelBuilder.Entity<Knowledge>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.KnowledgeBaseId);
+            entity.HasIndex(e => e.ParseStatus);
+
+            entity.HasOne(e => e.KnowledgeBase)
+                .WithMany(e => e.Knowledge)
+                .HasForeignKey(e => e.KnowledgeBaseId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         // 配置KnowledgeChunk实体
         modelBuilder.Entity<KnowledgeChunk>(entity =>
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.KnowledgeBaseId);
+            entity.HasIndex(e => e.KnowledgeId);
             entity.HasIndex(e => e.RelationId);
             entity.HasIndex(e => e.CreatedAt);
+
+            entity.HasOne(e => e.Knowledge)
+                .WithMany(e => e.Chunks)
+                .HasForeignKey(e => e.KnowledgeId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(e => e.KnowledgeBase)
                 .WithMany(e => e.Chunks)
                 .HasForeignKey(e => e.KnowledgeBaseId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

@@ -1,3 +1,5 @@
+using WeiDin.Core.Enums;
+
 namespace WeiDin.Core.Entities;
 
 /// <summary>
@@ -21,6 +23,11 @@ public class KnowledgeBase
     public string? Description { get; set; }
 
     /// <summary>
+    /// 索引策略
+    /// </summary>
+    public IndexingStrategy IndexingStrategy { get; set; } = IndexingStrategy.Vector;
+
+    /// <summary>
     /// 创建时间
     /// </summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -39,6 +46,11 @@ public class KnowledgeBase
     /// 是否启用
     /// </summary>
     public bool IsEnabled { get; set; } = true;
+
+    /// <summary>
+    /// 关联的知识条目
+    /// </summary>
+    public virtual ICollection<Knowledge> Knowledge { get; set; } = new List<Knowledge>();
 
     /// <summary>
     /// 关联的知识块

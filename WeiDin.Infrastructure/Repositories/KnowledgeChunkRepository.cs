@@ -26,6 +26,17 @@ public class KnowledgeChunkRepository : Repository<KnowledgeChunk>
     }
 
     /// <summary>
+    /// 根据知识条目ID获取所有知识块
+    /// </summary>
+    public async Task<List<KnowledgeChunk>> GetByKnowledgeIdAsync(Guid knowledgeId)
+    {
+        return await _dbSet
+            .Where(c => c.KnowledgeId == knowledgeId)
+            .OrderBy(c => c.ChunkIndex)
+            .ToListAsync();
+    }
+
+    /// <summary>
     /// 根据RelationId获取知识块
     /// </summary>
     public async Task<List<KnowledgeChunk>> GetByRelationIdAsync(Guid relationId)

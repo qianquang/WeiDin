@@ -1,11 +1,17 @@
+using System.Threading.Channels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.VectorData;
 using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.SqlServer;
 using Volo.Abp.Modularity;
 using WeiDin.Core;
 using WeiDin.Core.Interfaces;
+using WeiDin.Core.Models;
+
+using KnowledgeEntity = WeiDin.Core.Entities.Knowledge;
+using WeiDin.Infrastructure.Background;
 using WeiDin.Infrastructure.Data;
 using WeiDin.Infrastructure.Repositories;
 using WeiDin.Infrastructure.Services;
@@ -31,21 +37,16 @@ public class WeiDinInfrastructureModule : AbpModule
         // 配置DbContext选项
         Configure<AbpDbContextOptions>(options =>
         {
-            // 使用默认连接字符串（从配置中读取 "DefaultConnection"）
             options.UseSqlServer();
 
-            // 配置特定 DbContext 的选项
             options.Configure<WeiDinDbContext>(opts =>
             {
-                // 从配置中读取连接字符串
                 var connString = opts.ConnectionString ?? configuration.GetConnectionString("DefaultConnection");
                 if (string.IsNullOrEmpty(connString))
                 {
                     throw new InvalidOperationException("数据库连接字符串未配置。请在 appsettings.json 中设置 ConnectionStrings:DefaultConnection");
                 }
 
-                // 使用 DbContextOptions 配置 SQL Server 和迁移程序集
-                // 必须显式传递连接字符串
                 opts.DbContextOptions.UseSqlServer(connString, sqlServerOptions =>
                 {
                     sqlServerOptions.MigrationsAssembly("WeiDin.Infrastructure");
@@ -60,9 +61,27 @@ public class WeiDinInfrastructureModule : AbpModule
         // 注册知识库仓储
         context.Services.AddTransient<KnowledgeChunkRepository>();
         context.Services.AddTransient<KnowledgeBaseRepository>();
+        context.Services.AddTransient<KnowledgeRepository>();
 
-        // 注册嵌入服务 (不再需要 FaissIndexService，向量直接存数据库)
+        // 注册嵌入服务
         context.Services.AddSingleton<IEmbeddingService, OnnxEmbeddingService>();
+
+        // 注册 Rerank 精排服务
+        context.Services.AddSingleton<IRerankService, OnnxRerankService>();
+
+        // 注册文档解析服务
+        context.Services.AddSingleton<IDocumentParser, DocumentParser>();
+
+        // 注册向量存储（开发用内存实现，生产换 Qdrant/Redis 只需改这一行）
+        context.Services.AddSingleton<VectorStore, InMemoryVectorStore>();
+
+        // 注册文档处理 Channel（有界队列，容量 100）
+        context.Services.AddSingleton(Channel.CreateBounded<(KnowledgeEntity, string)>(new BoundedChannelOptions(100)
+        {
+            FullMode = BoundedChannelFullMode.Wait
+        }));
+
+        // 注册文档处理后台服务
+        context.Services.AddHostedService<DocumentProcessingWorker>();
     }
 }
-

@@ -3,7 +3,7 @@ using WeiDin.Core.Enums;
 namespace WeiDin.Core.Entities;
 
 /// <summary>
-/// 知识块实体 - 用于向量检索的基本单元
+/// 知识块实体 — 向量检索的基本单元（SQL Server 只存结构化数据，向量存 SK VectorStore）
 /// </summary>
 public class KnowledgeChunk
 {
@@ -13,7 +13,12 @@ public class KnowledgeChunk
     public Guid Id { get; set; } = Guid.NewGuid();
 
     /// <summary>
-    /// 关联的知识库ID
+    /// 关联的知识条目ID
+    /// </summary>
+    public Guid KnowledgeId { get; set; }
+
+    /// <summary>
+    /// 关联的知识库ID（冗余字段，方便查询）
     /// </summary>
     public Guid KnowledgeBaseId { get; set; }
 
@@ -58,14 +63,19 @@ public class KnowledgeChunk
     public string? SourceId { get; set; }
 
     /// <summary>
-    /// 向量维度 (缓存用)
+    /// 前驱分块ID（双向链表）
     /// </summary>
-    public int? VectorDimension { get; set; }
+    public Guid? PreChunkId { get; set; }
 
     /// <summary>
-    /// 向量数据 (用于持久化存储)
+    /// 后继分块ID（双向链表）
     /// </summary>
-    public byte[]? Vector { get; set; }
+    public Guid? NextChunkId { get; set; }
+
+    /// <summary>
+    /// 关联的知识条目
+    /// </summary>
+    public virtual Knowledge? Knowledge { get; set; }
 
     /// <summary>
     /// 关联的知识库
