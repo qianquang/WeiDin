@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.VectorData;
+using Qdrant.Client;
 using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.SqlServer;
 using Volo.Abp.Modularity;
@@ -72,8 +73,19 @@ public class WeiDinInfrastructureModule : AbpModule
         // 注册文档解析服务
         context.Services.AddSingleton<IDocumentParser, DocumentParser>();
 
-        // 注册向量存储（开发用内存实现，生产换 Qdrant/Redis 只需改这一行）
-        context.Services.AddSingleton<VectorStore, InMemoryVectorStore>();
+        // 注册向量存储：通过配置 VectorStore:Provider 切换（InMemory / Qdrant）
+        var vectorStoreProvider = configuration["VectorStore:Provider"] ?? "InMemory";
+        if (vectorStoreProvider.Equals("Qdrant", StringComparison.OrdinalIgnoreCase))
+        {
+            var host = configuration["VectorStore:Qdrant:Host"] ?? "localhost";
+            var port = int.Parse(configuration["VectorStore:Qdrant:Port"] ?? "6334");
+            context.Services.AddSingleton<QdrantClient>(_ => new QdrantClient(host, port));
+            context.Services.AddSingleton<VectorStore, QdrantVectorStore>();
+        }
+        else
+        {
+            context.Services.AddSingleton<VectorStore, InMemoryVectorStore>();
+        }
 
         // 注册文档处理 Channel（有界队列，容量 100）
         context.Services.AddSingleton(Channel.CreateBounded<(KnowledgeEntity, string)>(new BoundedChannelOptions(100)

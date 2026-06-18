@@ -15,6 +15,7 @@
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.77.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.77.0" />
     <PackageReference Include="PdfPig" Version="0.1.10" />
+    <PackageReference Include="Qdrant.Client" Version="1.18.1" />
     <PackageReference Include="StackExchange.Redis" Version="2.7.27" />
     <PackageReference Include="Volo.Abp.EntityFrameworkCore" Version="8.1.5" />
     <PackageReference Include="Volo.Abp.EntityFrameworkCore.SqlServer" Version="8.1.5" />

@@ -27,6 +27,20 @@ services:
     networks:
       - weidin-network
 
+  # Qdrant 向量数据库
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: weidin-qdrant
+    ports:
+      - "6333:6333"   # REST API
+      - "6334:6334"   # gRPC
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+    networks:
+      - weidin-network
+
   # 微钉API服务
   weidin-api:
     build:
@@ -40,15 +54,20 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=WeiDinDb;User Id=sa;Password=YourStrong@Passw0rd;MultipleActiveResultSets=true;TrustServerCertificate=true
       - ConnectionStrings__Redis=redis:6379
+      - VectorStore__Provider=Qdrant
+      - VectorStore__Qdrant__Host=qdrant
+      - VectorStore__Qdrant__Port=6334
     depends_on:
       - sqlserver
       - redis
+      - qdrant
     networks:
       - weidin-network
 
 volumes:
   sqlserver_data:
   redis_data:
+  qdrant_data:
 
 networks:
   weidin-network:

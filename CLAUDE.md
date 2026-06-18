@@ -4,16 +4,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-WeiDin is an instant messaging system built with ASP.NET Core 8.0 (backend) and Vue.js 3 (frontend). It follows Domain-Driven Design (DDD) layered architecture using ABP Framework as the foundation. The system provides user management, real‑time messaging, group chats, friend management, and file sharing.
+WeiDin is an instant messaging system built with ASP.NET Core 8.0 (backend) and Vue.js 3 (frontend). It follows Domain-Driven Design (DDD) layered architecture using ABP Framework as the foundation. The system provides user management, real‑time messaging, group chats, friend management, file sharing, and a full **RAG (Retrieval-Augmented Generation) knowledge base** with local ONNX model inference and DeepSeek LLM integration.
 
 ## Architecture
 
 The solution consists of five main projects:
 
-- **WeiDin.Core** – Domain layer with entities, enums, and core interfaces.
-- **WeiDin.Application** – Application services, DTOs, and business logic.
-- **WeiDin.Infrastructure** – Data access (Entity Framework Core), dynamic table management, and repository implementations.
-- **WeiDin.API** – ASP.NET Core Web API with SignalR hub, JWT authentication, and Swagger.
+- **WeiDin.Core** – Domain layer with entities (IM + Knowledge Base), enums, and core interfaces.
+- **WeiDin.Application** – Application services, DTOs, business logic, RAG engine, LLM service, retrieval & reranking.
+- **WeiDin.Infrastructure** – Data access (Entity Framework Core), dynamic table management, repository implementations, ONNX model inference, and in-memory vector store.
+- **WeiDin.API** – ASP.NET Core Web API with SignalR hub, JWT authentication, Swagger, and Agent/Knowledge controllers.
 - **WeiDin.Frontend** – Vue.js 3 SPA with Element Plus UI, Pinia state management, and SignalR client.
 
 **Dependency flow**: Frontend → API → (Application + Infrastructure) → Core.
@@ -107,6 +107,19 @@ When adding a new server‑pushed event:
 
 When a new friendship or group is activated, the `DynamicTableService` creates three partitioned tables (`Message_{relationId}`, `MessageAttachment_{relationId}`, `MessageStatus_{relationId}`) that mirror the structure of the main template tables. All message CRUD operations for that conversation use `DynamicMessageRepository` which routes queries to the appropriate physical table.
 
+### RAG Knowledge Base Pipeline
+
+The RAG system follows a 6-stage pipeline in `RagAgentEngine`:
+
+1. **Query Understanding** – LLM-based intent classification (KnowledgeSearch vs DirectChat) and query rewriting
+2. **Intent Routing** – Skip retrieval for DirectChat; proceed to vector search for KnowledgeSearch
+3. **Vector Retrieval** – ONNX embedding (BGE-small-zh-v1.5) + in-memory cosine similarity search, 3x TopK over-fetch
+4. **Reranking** – Cross-encoder model (bge-reranker-base) rescores query-document pairs for higher precision
+5. **Context Assembly** – Builds numbered knowledge context from top-K chunks
+6. **LLM Generation** – DeepSeek API via Semantic Kernel's OpenAI-compatible connector
+
+Document ingestion uses `System.Threading.Channels` for async producer-consumer processing: parse → chunk → embed → store. The `InMemoryVectorStore` is designed to be replaceable with production vector databases (Qdrant, Redis, etc.).
+
 ## File and Naming Conventions
 
 - **Backend**: PascalCase for classes, methods, and properties; `I` prefix for interfaces.
@@ -116,10 +129,16 @@ When a new friendship or group is activated, the `DynamicTableService` creates t
 
 ## Important Paths
 
-- **API Controllers**: `WeiDin.API/Controllers/`
+- **API Controllers**: `WeiDin.API/Controllers/` (Auth, Users, Messages, Groups, Friendships, Files, Agent, Knowledge)
 - **SignalR Hub**: `WeiDin.API/Hubs/ChatHub.cs`
 - **Application services**: `WeiDin.Application/Services/`
-- **Domain entities**: `WeiDin.Core/Entities/`
+- **RAG Engine**: `WeiDin.Application/Services/RagAgentEngine.cs`
+- **LLM Service**: `WeiDin.Application/Services/DeepSeekLlmService.cs`
+- **ONNX Embedding**: `WeiDin.Infrastructure/AI/OnnxEmbeddingService.cs`
+- **ONNX Rerank**: `WeiDin.Infrastructure/AI/OnnxRerankService.cs`
+- **Vector Store**: `WeiDin.Infrastructure/Services/InMemoryVectorStore.cs`（开发） / `QdrantVectorStore.cs`（生产，通过配置切换）
+- **Document Parser**: `WeiDin.Application/Services/DocumentParser.cs`
+- **Domain entities**: `WeiDin.Core/Entities/` (IM entities + KnowledgeBase, Knowledge, KnowledgeChunk)
 - **Frontend stores**: `WeiDin.Frontend/src/stores/`
 - **Real‑time layer**: `WeiDin.Frontend/src/realtime/`
 - **Database migrations**: `WeiDin.Infrastructure/Migrations/`
